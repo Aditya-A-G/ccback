@@ -112,6 +112,43 @@ describe('a localOnly load', () => {
     expect(fs.existsSync(path.join(cacheDir, 'Xenova', 'all-MiniLM-L6-v2', '.ccfind-model-ready'))).toBe(true);
   });
 
+  /**
+   * The flags were set *before* the `try` whose `finally` puts them back, so
+   * anything that threw while they were being set left the module globally
+   * local-only: every later load in the process would then refuse to download.
+   * A `localModelPath` setter that throws once is the smallest way to stand in
+   * for that.
+   */
+  it('puts the flags back even when setting them is what fails', async () => {
+    const cacheDir = tempDir('sf-env-cache-');
+    const previous = fake.env['localModelPath'];
+    let thrown = false;
+    Object.defineProperty(fake.env, 'localModelPath', {
+      configurable: true,
+      get: () => previous,
+      set: () => {
+        if (thrown) return;
+        thrown = true;
+        throw new Error('localModelPath is not writable in this build');
+      },
+    });
+
+    try {
+      await expect(withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }))).rejects.toThrow(
+        /not writable/,
+      );
+    } finally {
+      delete (fake.env as Record<string, unknown>)['localModelPath'];
+      fake.env['localModelPath'] = previous;
+    }
+
+    // The next load in this process can still reach the network.
+    expect(thrown).toBe(true);
+    expect(fake.env['allowRemoteModels']).toBe(true);
+    expect(fake.env['allowLocalModels']).toBe(INITIAL_ENV.allowLocalModels);
+    expect(fake.__calls).toHaveLength(0);
+  });
+
   it('still refuses to load anything when CCFIND_NO_MODEL is set', async () => {
     await expect(createDefaultEmbedder({ cacheDir: tempDir('sf-env-cache-') })).rejects.toThrow(/CCFIND_NO_MODEL/);
     expect(fake.__calls).toHaveLength(0);

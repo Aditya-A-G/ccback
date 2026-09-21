@@ -17,6 +17,7 @@ import {
   type Db,
   type Embedder,
   getSharedDatabase,
+  type KeywordOnlySource,
   missingProjectsDirMessage,
   NO_SESSIONS_YET,
   projectsDirExists,
@@ -91,6 +92,12 @@ export interface StartWebServerOptions {
    * Used for the `--no-sync` + mismatched `--projects-dir` warning.
    */
   notice?: string | undefined;
+  /**
+   * The switch that turned smart search off, or null. Overrides `autoEmbed`:
+   * a keyword-only server never starts an embedding job, whatever it was asked
+   * for, so the promise does not depend on one caller remembering.
+   */
+  keywordOnly?: KeywordOnlySource | null | undefined;
 }
 
 /** How many further ports to try when the requested one is busy. */
@@ -108,6 +115,7 @@ export async function startWebServer(opts: StartWebServerOptions): Promise<WebSe
     embedder: opts.embedder,
     job: new EmbedJob(),
     notice: opts.notice,
+    keywordOnly: opts.keywordOnly ?? null,
   };
 
   const server = http.createServer(createRequestListener(ctx));
@@ -136,7 +144,7 @@ export async function startWebServer(opts: StartWebServerOptions): Promise<WebSe
     process.on('exit', onExit);
   }
 
-  if (opts.autoEmbed !== false) {
+  if (opts.autoEmbed !== false && ctx.keywordOnly === null) {
     // Smart search sets itself up while the user is already searching: keyword
     // results are there from the first keystroke and quietly get better.
     ctx.job.startIfPending({ db: ctx.db, embedder: ctx.embedder, appHome: ctx.appHome });
@@ -213,6 +221,9 @@ export async function runWeb(opts: WebOptions): Promise<number> {
     port: opts.port,
     projectsDir,
     ...(notice === null ? {} : { notice }),
+    // `--keyword-only` (or CCFIND_KEYWORD_ONLY): no background embedding job,
+    // and every route answers as though smart search were not there.
+    ...(opts.keywordOnly === null ? {} : { keywordOnly: opts.keywordOnly, autoEmbed: false }),
   });
 
   const sessions = recentSessions({ limit: 1 }).length;

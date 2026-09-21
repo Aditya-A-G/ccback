@@ -9,6 +9,7 @@ import {
 } from './embedder.js';
 import { UserError } from './errors.js';
 import { syncIndex, type SyncOptions, type SyncResult } from './indexer.js';
+import type { KeywordOnlySource } from './keyword-only.js';
 import {
   missingProjectsDirMessage,
   projectsDirExists,
@@ -62,9 +63,14 @@ export function indexedProjectsDir(options: IndexAccessOptions = {}): string | n
 }
 
 /**
- * `--no-sync` plus a `--projects-dir` other than the one the index was built
- * from: the index is not going to be brought in line with that folder, so the
- * results are about the folder it was built from.
+ * `--no-sync` pointed at a folder other than the one the index was built from:
+ * the index is not going to be brought in line with that folder, so the results
+ * are about the folder it was built from.
+ *
+ * The folder in question is the one this run would read, whether it was named
+ * with `--projects-dir` or resolved from `CLAUDE_CONFIG_DIR`/`~/.claude`. A
+ * default that has moved since the index was built is the same surprise as a
+ * mismatched flag, so it gets the same sentence rather than silence.
  *
  * Silently answering with somebody else's sessions is the kind of thing that
  * gets noticed three commands later, so every front end says the same sentence:
@@ -75,9 +81,6 @@ export function projectsDirMismatch(
   projectsDir?: string | undefined,
   options: IndexAccessOptions = {},
 ): string | null {
-  // No `--projects-dir` means the index and the request agree by construction;
-  // asked before the index is opened, so the common case costs nothing.
-  if (projectsDir === undefined || projectsDir === '') return null;
   const recorded = indexedProjectsDir(options);
   if (recorded === null) return null;
   const asked = resolveProjectsDir(projectsDir);
@@ -206,7 +209,19 @@ export function listFolders(options: IndexAccessOptions = {}): FolderInfo[] {
 }
 
 export interface IndexStatus {
+  /** The folder this run was asked to read: `--projects-dir`, or the default. */
   projectsDir: string;
+  /**
+   * The folder the counts below actually came from, as the indexer recorded it,
+   * or null for an index that is empty or predates that being written down.
+   */
+  indexedProjectsDir: string | null;
+  /**
+   * False when the index was built from a different folder than the one asked
+   * for, so every count here is about somewhere else. True when there is
+   * nothing recorded to disagree with.
+   */
+  projectsDirMatchesIndex: boolean;
   /** False when that directory is not on disk: a setup problem, not an empty history. */
   projectsDirExists: boolean;
   /** The one sentence every front end shows when the directory is missing. */
@@ -229,10 +244,21 @@ export interface IndexStatus {
   defaultEmbeddingModel: string;
   /** Where smart search stands: enabled, runtime present, chunks still pending. */
   semantic: SemanticStatus;
+  /**
+   * The switch that turned smart search off for this run, or null. When it is
+   * set, nothing anywhere loads a model — whatever `semantic` reports about the
+   * embeddings already on disk.
+   */
+  keywordOnly: KeywordOnlySource | null;
+}
+
+export interface StatusOptions extends SyncApiOptions {
+  /** Which switch turned smart search off for this run, if any. */
+  keywordOnly?: KeywordOnlySource | null | undefined;
 }
 
 /** Counts and capabilities, for `stats`, the TUI header and `/api/status`. */
-export function status(options: SyncApiOptions = {}): IndexStatus {
+export function status(options: StatusOptions = {}): IndexStatus {
   const db = resolveDb(options);
   const dbPath = options.dbPath ?? resolveIndexPath(options.appHome);
   const counts = db
@@ -244,14 +270,20 @@ export function status(options: SyncApiOptions = {}): IndexStatus {
     )
     .get() as { sessions: number; messages: number; chunks: number; embedded: number };
 
+  const keywordOnly = options.keywordOnly ?? null;
   const transformersAvailable = isTransformersAvailable();
-  const semanticReady = counts.embedded > 0 && transformersAvailable;
+  const semanticReady = keywordOnly === null && counts.embedded > 0 && transformersAvailable;
   const dims = getMeta(db, 'embedding_dims');
   const projectsDir = resolveProjectsDir(options.projectsDir);
   const dirExists = projectsDirExists(projectsDir);
+  // Counts that came from one folder must never be printed under the name of
+  // another, so where they came from is part of the answer.
+  const recorded = getMeta(db, PROJECTS_DIR_META);
 
   return {
     projectsDir,
+    indexedProjectsDir: recorded,
+    projectsDirMatchesIndex: recorded === null || sameDirectory(recorded, projectsDir),
     projectsDirExists: dirExists,
     projectsDirHint: dirExists ? null : missingProjectsDirMessage(projectsDir),
     dbPath,
@@ -263,9 +295,14 @@ export function status(options: SyncApiOptions = {}): IndexStatus {
     embeddingModel: getMeta(db, 'embedding_model'),
     embeddingDims: dims === null ? null : Number(dims),
     transformersAvailable,
-    availableModes: semanticReady ? ['auto', 'keyword', 'semantic', 'hybrid'] : ['auto', 'keyword'],
+    availableModes: keywordOnly !== null
+      ? ['keyword']
+      : semanticReady
+        ? ['auto', 'keyword', 'semantic', 'hybrid']
+        : ['auto', 'keyword'],
     defaultEmbeddingModel: DEFAULT_MODEL_ID,
     semantic: semanticStatus({ db }),
+    keywordOnly,
   };
 }
 

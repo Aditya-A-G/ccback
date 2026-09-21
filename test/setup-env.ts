@@ -35,3 +35,8 @@ process.env['NO_COLOR'] = '1';
 // tests write to. Neither is the test suite's business.
 delete process.env['CCFIND_DEBUG'];
 delete process.env['SHELL'];
+// Both move a shell's startup file, and keyword-only changes what the whole
+// tool does: inheriting any of them would silently change what is tested.
+delete process.env['ZDOTDIR'];
+delete process.env['XDG_CONFIG_HOME'];
+delete process.env['CCFIND_KEYWORD_ONLY'];

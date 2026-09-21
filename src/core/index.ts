@@ -32,6 +32,9 @@ export {
 
 export { UserError, isUserError } from './errors.js';
 
+export type { KeywordOnlySource } from './keyword-only.js';
+export { KEYWORD_ONLY_ENV, keywordOnlyFromEnv, keywordOnlyNotice, resolveKeywordOnly } from './keyword-only.js';
+
 export { matchCountLabel } from './labels.js';
 
 export { hasControlCharacters, sanitizeLine, sanitizeText } from './sanitize.js';
@@ -142,6 +145,7 @@ export type {
   GetSessionOptions,
   IndexStatus,
   SessionTranscript,
+  StatusOptions,
   SyncApiOptions,
 } from './api.js';
 export {

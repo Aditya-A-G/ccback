@@ -22,6 +22,9 @@ const MISMATCH =
 
 const EMPTY_STATUS: IndexStatus = {
   projectsDir: '/tmp/recorded',
+  indexedProjectsDir: '/tmp/recorded',
+  projectsDirMatchesIndex: true,
+  keywordOnly: null,
   projectsDirExists: true,
   projectsDirHint: null,
   dbPath: '/tmp/recorded/index.db',

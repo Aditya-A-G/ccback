@@ -74,10 +74,42 @@ async function indexed(): Promise<{ projectsDir: string; db: Db }> {
 }
 
 describe('projectsDirMismatch', () => {
-  it('says nothing when no --projects-dir was given', async () => {
-    const { db } = await indexed();
-    expect(projectsDirMismatch(undefined, { db })).toBeNull();
-    expect(projectsDirMismatch('', { db })).toBeNull();
+  it('says nothing when no --projects-dir was given and the default is the recorded one', async () => {
+    const { db, projectsDir } = await indexed();
+    const previous = process.env['CLAUDE_CONFIG_DIR'];
+    // `$CLAUDE_CONFIG_DIR/projects` is exactly the folder the index holds, so
+    // a run with no flag at all has nothing to warn about.
+    process.env['CLAUDE_CONFIG_DIR'] = path.dirname(projectsDir);
+    try {
+      expect(projectsDirMismatch(undefined, { db })).toBeNull();
+      expect(projectsDirMismatch('', { db })).toBeNull();
+    } finally {
+      if (previous === undefined) delete process.env['CLAUDE_CONFIG_DIR'];
+      else process.env['CLAUDE_CONFIG_DIR'] = previous;
+    }
+    db.close();
+  });
+
+  /**
+   * The comment here used to claim that without `--projects-dir` the index and
+   * the request agree by construction. They do not: the default folder moves
+   * when `CLAUDE_CONFIG_DIR` changes, or when the index was built from a
+   * `--projects-dir` that is not being passed this time.
+   */
+  it('still names both folders when the default folder is not the recorded one', async () => {
+    const { db, projectsDir } = await indexed();
+    const previous = process.env['CLAUDE_CONFIG_DIR'];
+    const elsewhere = tempDir('sf-default-elsewhere-');
+    process.env['CLAUDE_CONFIG_DIR'] = elsewhere;
+    try {
+      const line = projectsDirMismatch(undefined, { db });
+      expect(line).not.toBeNull();
+      expect(line).toContain(canonicalDir(projectsDir));
+      expect(line).toContain(path.join(path.resolve(elsewhere), 'projects'));
+    } finally {
+      if (previous === undefined) delete process.env['CLAUDE_CONFIG_DIR'];
+      else process.env['CLAUDE_CONFIG_DIR'] = previous;
+    }
     db.close();
   });
 

@@ -14,13 +14,11 @@ Works on macOS, Linux and Windows. Needs Node 20 or newer.
 npm install -g ccfind          # gives you `ccfind` and the short `ccf`
 ```
 
-That pulls in the local embedding libraries too, about 140 MB on disk. If you would rather keep it small:
+That includes the libraries that run the embedding model on your machine, so the install is about 140 MB to download and about 520 MB on disk. They ship binaries for macOS, Linux and Windows in one package; only yours is ever loaded.
 
-```sh
-npm install -g ccfind --omit=optional    # keyword search only, a few MB
-```
+To use keyword search alone, run `ccfind --keyword-only`, or set `CCFIND_KEYWORD_ONLY=1` in your shell to make that permanent: no model is downloaded and nothing is embedded. (npm cannot leave the libraries out of a global install: `npm install -g` ignores `--omit=optional`. In a project-local install, `npm install ccfind --omit=optional` does skip them and brings the install down to about 40 MB.)
 
-Want an even shorter command? `ccfind --alias` offers to add `alias sf=ccfind` to your shell startup file. Before it offers, it checks that `sf` is not a program on your `PATH`, not a shell builtin or reserved word (bash, zsh and fish alike), and not already an alias, abbreviation or function in your startup file — or, on fish, a file in `~/.config/fish/functions`. It shows you the exact block it would append — a blank line, a comment saying ccfind added it, and the alias — and, unless you pass `--yes`, asks before adding it. Nothing else in the file is touched, and it never follows a symlink out of your home directory. If it cannot write the file it prints the line for you to paste. Piped or scripted, it prints the line and changes nothing unless you pass `--yes`, which answers the question and skips it while still running every check. Pick your own name with `ccfind --alias qq`. Under a shell it does not know, and on Windows, it prints the line to add instead of guessing at a file.
+Want an even shorter command? `ccfind --alias` offers to add `alias sf=ccfind` to your shell startup file. Before it offers, it checks that `sf` is not a program on your `PATH`, not a shell builtin or reserved word (bash, zsh and fish alike), and not already an alias, abbreviation or function in your startup file — or, on fish, a file in your fish functions directory (`~/.config/fish/functions`, or under `XDG_CONFIG_HOME` when you have set one). The startup file is the one your shell really reads: `ZDOTDIR` and `XDG_CONFIG_HOME` are honoured, and if either points outside your home directory it says so and prints the line instead of writing anywhere. It shows you the exact block it would append — a blank line, a comment saying ccfind added it, and the alias — and, unless you pass `--yes`, asks before adding it. Nothing else in the file is touched, and it never follows a symlink out of your home directory. If it cannot write the file it prints the line for you to paste. Piped or scripted, it prints the line and changes nothing unless you pass `--yes`, which answers the question and skips it while still running every check. Pick your own name with `ccfind --alias qq`. Under a shell it does not know, and on Windows, it prints the line to add instead of guessing at a file.
 
 ## Use it
 
@@ -55,7 +53,7 @@ Two things run at once: keyword search (SQLite FTS5, BM25, stemming) and semanti
 
 Smart search sets itself up on its own. The first time you open the picker or the browser UI, ccfind downloads a small embedding model (`all-MiniLM-L6-v2`, about 23 MB) and starts indexing meaning in the background. Keyword results are there from the first keystroke and quietly get better as it finishes; on a large history the first pass takes a few minutes. After that, a day of new conversation is a top-up of a few seconds, because unchanged text keeps the embeddings it already had.
 
-If you installed with `--omit=optional`, none of that happens and nothing nags you about it: keyword search is the whole tool.
+With `--keyword-only` or `CCFIND_KEYWORD_ONLY=1`, or when the embedding libraries are not installed, none of that happens and nothing nags you about it: keyword search is the whole tool.
 
 ## Everything else
 
@@ -79,10 +77,11 @@ this machine already, they answer with keyword results and say so in `modeUsed`.
 `ccfind --reindex` is what sets smart search up from a terminal.
 
 `--port 0` asks the operating system for any free port, and a busy port is
-stepped past rather than refused. `--no-sync` skips the index update, so if you
-also pass a `--projects-dir` other than the one the index was built from, it
-says on stderr that the results come from the recorded folder — stdout stays
-exactly what a pipeline expects. The picker shows the same sentence as its one
+stepped past rather than refused. `--no-sync` skips the index update, so if the
+folder it would read is not the one the index was built from — a different
+`--projects-dir`, or a default that has moved since — it says on stderr that the
+results come from the recorded folder — stdout stays exactly what a pipeline
+expects. The picker shows the same sentence as its one
 status line until you type, and the browser UI as a quiet line under the
 results. Single-letter flags can be bundled: `-pw` is `-p -w`.
 

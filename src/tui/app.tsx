@@ -126,6 +126,12 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
   const selectedSessionId = useRef<string | null>(null);
 
   const queryText = query.text.trim();
+  /**
+   * Keyword-only decides the mode here too, not only in the CLI that usually
+   * sets both: `runTui` is a public entry point, and one caller passing
+   * `keywordOnly` without a mode must not end up loading a model.
+   */
+  const searchMode = options.keywordOnly != null ? 'keyword' : (options.mode ?? 'auto');
   // `--limit` is the user saying how many rows they want; it is not a floor.
   const limit = Math.max(1, options.limit ?? DEFAULT_PICKER_LIMIT);
 
@@ -143,7 +149,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
             ? await deps.recentSessions({ limit: 5, cwdPrefix: options.cwdPrefix })
             : await deps.search({
                 query: nextQuery,
-                mode: options.mode ?? 'auto',
+                mode: searchMode,
                 sort: nextSort,
                 limit,
                 cwdPrefix: options.cwdPrefix,
@@ -166,7 +172,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
         setNotice(oneLine(errorText(err)));
       }
     },
-    [deps, limit, options.cwdPrefix, options.mode, options.role, options.since, options.until],
+    [deps, limit, options.cwdPrefix, options.role, options.since, options.until, searchMode],
   );
 
   // ---- startup: draw first, then sync ------------------------------------
@@ -283,6 +289,10 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
         }
       }
       if (!cancelled) setReady(true);
+      // Keyword-only: the picker does not even ask where smart search stands.
+      // Asking is cheap, but the answer would only be used to start work that
+      // downloads a model, and the promise is that nothing does.
+      if (options.keywordOnly != null) return;
       try {
         const smart = await deps.semanticStatus();
         if (!cancelled) startSmartSearch(smart);
@@ -351,6 +361,10 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
         const list = await deps.sessionMatches({
           sessionId: current.sessionId,
           query: queryText,
+          // The same mode the search ran in. Left to default, this would go
+          // looking for a semantic half — and a model — on a run whose whole
+          // point was not to.
+          mode: searchMode,
           // One more than the cap, so "exactly 50" is not reported as "50+".
           limit: MATCH_LIMIT + 1,
         });
@@ -365,7 +379,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
     return () => {
       cancelled = true;
     };
-  }, [matchKey, current, deps, queryText]);
+  }, [matchKey, current, deps, searchMode, queryText]);
 
   const matches = matchState && matchState.key === matchKey ? matchState.list : null;
   const fetchedMatches = matches?.length ?? 0;

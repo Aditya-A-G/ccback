@@ -363,6 +363,13 @@ function initSearch() {
   function renderSetupLine() {
     const semantic = (statusInfo && statusInfo.semantic) || null;
     const job = (statusInfo && statusInfo.embedding) || {};
+    // Keyword-only: this server will never embed anything, so there is no
+    // setup to report and nothing to poll for. Checked first, because a
+    // half-embedded index would otherwise look like work in progress.
+    if (statusInfo && statusInfo.smartSearch === 'disabled') {
+      setupLine.hidden = true;
+      return false;
+    }
     if (!semantic || !semantic.runtimeInstalled) {
       setupLine.hidden = true;
       return false;

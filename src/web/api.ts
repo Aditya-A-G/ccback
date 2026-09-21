@@ -4,6 +4,7 @@ import {
   INSTALL_HINT,
   isTransformersAvailable,
   isUserError,
+  keywordOnlyNotice,
   listFolders,
   NO_EMBEDDINGS_HINT,
   normalizeBound,
@@ -103,7 +104,11 @@ function parseDate(params: URLSearchParams, name: string, edge: 'start' | 'end')
 /** `GET /api/search` — validated query parameters. */
 export async function searchRoute(ctx: ServerContext, params: URLSearchParams): Promise<JsonResponse> {
   const query = optionalString(params, 'q') ?? '';
-  const mode = parseMode(params);
+  // A bad `mode` is still a bad request, even when the answer is decided: a
+  // keyword-only server does not pretend to have understood something it did
+  // not. A good one is simply overruled — nothing here may load a model.
+  const requestedMode = parseMode(params);
+  const mode: SearchMode = ctx.keywordOnly !== null ? 'keyword' : requestedMode;
   const sort = parseSort(params);
   const limit = parseInteger(params, 'limit', DEFAULT_SEARCH_LIMIT, 1, MAX_SEARCH_LIMIT);
   const cwdPrefix = optionalString(params, 'cwd');
@@ -164,9 +169,11 @@ export function statusRoute(ctx: ServerContext, params?: URLSearchParams): JsonR
     dbPath: ctx.dbPath,
     appHome: ctx.appHome,
     projectsDir: ctx.projectsDir,
+    keywordOnly: ctx.keywordOnly,
   });
+  const disabled = ctx.keywordOnly !== null;
   const semantic = semanticStatus({ db: ctx.db, embedder: ctx.embedder });
-  const embeddingsReady = base.chunksEmbedded > 0;
+  const embeddingsReady = !disabled && base.chunksEmbedded > 0;
   const semanticUsable = embeddingsReady && semantic.runtimeInstalled;
   return {
     status: 200,
@@ -176,9 +183,15 @@ export function statusRoute(ctx: ServerContext, params?: URLSearchParams): JsonR
       app: APP_NAME,
       ...auth,
       semantic,
-      availableModes: semanticUsable ? ['auto', 'keyword', 'semantic', 'hybrid'] : ['auto', 'keyword'],
+      /**
+       * What the page needs to know in one word: `disabled` means this server
+       * will not embed anything and will not search by meaning, whatever the
+       * counts below say about embeddings already on disk.
+       */
+      smartSearch: disabled ? 'disabled' : semantic.runtimeInstalled ? 'available' : 'unavailable',
+      availableModes: disabled ? ['keyword'] : semanticUsable ? ['auto', 'keyword', 'semantic', 'hybrid'] : ['auto', 'keyword'],
       embeddingsReady,
-      canEmbed: semantic.runtimeInstalled,
+      canEmbed: !disabled && semantic.runtimeInstalled,
       installHint: INSTALL_HINT,
       noEmbeddingsHint: NO_EMBEDDINGS_HINT,
       // One quiet line for the page, or null. Nothing depends on it working.
@@ -190,6 +203,9 @@ export function statusRoute(ctx: ServerContext, params?: URLSearchParams): JsonR
 
 /** `POST /api/embed` — starts or continues semantic indexing in the background. */
 export function embedRoute(ctx: ServerContext): JsonResponse {
+  // Nothing may start a model download on a keyword-only server, least of all
+  // a POST from a page that should not be offering it.
+  if (ctx.keywordOnly !== null) throw new HttpError(409, keywordOnlyNotice(ctx.keywordOnly));
   if (ctx.embedder === undefined && !isTransformersAvailable()) {
     throw new HttpError(409, INSTALL_HINT);
   }

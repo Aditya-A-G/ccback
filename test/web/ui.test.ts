@@ -53,6 +53,18 @@ describe('the search page', () => {
     expect(rule).not.toContain('background');
   });
 
+  it('shows no setup line at all when the server says smart search is disabled', () => {
+    const fn = js.slice(js.indexOf('function renderSetupLine()'), js.indexOf('function renderNoticeLine()'));
+    expect(fn).toContain("statusInfo.smartSearch === 'disabled'");
+    // Checked before the "is it building?" branch, or a half-embedded index
+    // would still be reported as work in progress on a keyword-only server.
+    expect(fn.indexOf("smartSearch === 'disabled'")).toBeLessThan(fn.indexOf('runtimeInstalled'));
+    expect(fn.indexOf("smartSearch === 'disabled'")).toBeLessThan(fn.indexOf('Setting up smart search…'));
+    // And nothing there polls or offers to start it.
+    expect(js).not.toContain('Enable');
+    expect(js).not.toContain("'/api/embed'");
+  });
+
   it('shows the server notice in the same quiet line style, as plain text', () => {
     // Its own element: the setup line is hidden and rewritten by the embed job,
     // which would take the notice down with it.

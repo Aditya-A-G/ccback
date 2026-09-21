@@ -15,10 +15,12 @@ import {
   isModelReady,
   isTransformersAvailable,
   isUserError,
+  keywordOnlyNotice,
   matchCountLabel,
   NO_SESSIONS_YET,
   projectsDirMismatch,
   recentSessions,
+  resolveKeywordOnly,
   resolveModelCacheDir,
   sanitizeLine,
   search,
@@ -30,7 +32,7 @@ import {
   UserError,
   withInterrupt,
 } from './core/index.js';
-import type { SearchMode, SessionResult, SortOrder } from './core/index.js';
+import type { KeywordOnlySource, SearchMode, SessionResult, SortOrder } from './core/index.js';
 
 // The TUI and web front ends are imported lazily so `--json` never pays for
 // Ink or the server.
@@ -47,6 +49,11 @@ export interface CommonOptions {
   projectsDir?: string | undefined;
   noSync: boolean;
   json: boolean;
+  /**
+   * Which switch turned smart search off for this run, or null. Every front end
+   * takes this as "load nothing", not merely "rank by keywords".
+   */
+  keywordOnly: KeywordOnlySource | null;
 }
 
 /** What `runTui(opts)` receives. */
@@ -274,8 +281,12 @@ async function main(rawArgv: string[]): Promise<number> {
   // "web project" instead of running a subcommand nobody typed.
   const query = words.join(' ');
 
+  // Read before anything else looks at the mode: a `CCFIND_KEYWORD_ONLY` that
+  // says neither yes nor no is a mistake, whether or not the flag was passed.
+  const keywordOnly = resolveKeywordOnly(flags['keyword-only'] === true);
+
   const common: CommonOptions = {
-    mode: parseMode(flags.mode, flags['keyword-only'] === true),
+    mode: parseMode(flags.mode, keywordOnly),
     sort: parseSort(flags.sort),
     limit: parseLimit(flags.limit),
     cwdPrefix: flags.cwd,
@@ -285,6 +296,7 @@ async function main(rawArgv: string[]): Promise<number> {
     projectsDir: flags['projects-dir'],
     noSync: flags['no-sync'] === true,
     json: flags.json === true,
+    keywordOnly,
   };
 
   const actions = (['web', 'stats', 'reindex'] as const).filter((name) => flags[name] === true);
@@ -340,6 +352,10 @@ async function runAliasCommand(name: string, assumeYes: boolean): Promise<number
   return runAlias(name, {
     home: os.homedir(),
     shell: process.env['SHELL'],
+    // The shells' own overrides: zsh reads `$ZDOTDIR/.zshrc` when it is set,
+    // and fish `$XDG_CONFIG_HOME/fish/config.fish`.
+    zdotdir: process.env['ZDOTDIR'],
+    xdgConfigHome: process.env['XDG_CONFIG_HOME'],
     platform: process.platform,
     pathEntries: (process.env['PATH'] ?? '').split(path.delimiter),
     pathExt: (process.env['PATHEXT'] ?? '').split(path.delimiter).filter(Boolean),
@@ -365,6 +381,7 @@ export interface WebBridge {
     port: number;
     projectsDir?: string | undefined;
     autoEmbed?: boolean | undefined;
+    keywordOnly?: KeywordOnlySource | null | undefined;
   }) => Promise<{ url: string; close: () => Promise<void> }>;
   transcriptUrl: (handle: { url: string }, sessionId: string, messageId?: number) => string;
   openInBrowser: (url: string) => boolean;
@@ -388,7 +405,11 @@ export interface TranscriptOpener {
  */
 export function createTranscriptOpener(
   web: WebBridge,
-  options: { port: number; projectsDir?: string | undefined },
+  options: {
+    port: number;
+    projectsDir?: string | undefined;
+    keywordOnly?: KeywordOnlySource | null | undefined;
+  },
 ): TranscriptOpener {
   let started: Promise<{ url: string; close: () => Promise<void> }> | undefined;
 
@@ -399,6 +420,9 @@ export function createTranscriptOpener(
         port: options.port,
         projectsDir: options.projectsDir,
         autoEmbed: false,
+        // ^O opens a real server: under keyword-only it must be as keyword-only
+        // as the picker that started it.
+        keywordOnly: options.keywordOnly ?? null,
       }));
     // A failed start must not be remembered, or every later ^O repeats it.
     attempt.catch(() => {
@@ -484,7 +508,11 @@ function flushStdout(timeoutMs = 200): Promise<void> {
 async function runInteractive(query: string, common: CommonOptions): Promise<number> {
   const { runTui } = await import('./tui/index.js');
   const web = await import('./web/index.js');
-  const opener = createTranscriptOpener(web, { port: DEFAULT_PORT, projectsDir: common.projectsDir });
+  const opener = createTranscriptOpener(web, {
+    port: DEFAULT_PORT,
+    projectsDir: common.projectsDir,
+    keywordOnly: common.keywordOnly,
+  });
   const code = await runTui({ ...common, query, openTranscript: opener.openTranscript });
   await finishInteractive(code, opener.close);
   return code;
@@ -591,7 +619,7 @@ async function runSearch(query: string, common: CommonOptions): Promise<number> 
  * watching a screen; a plain `-p`/`--json` search never does.
  */
 async function runReindex(common: CommonOptions, full: boolean): Promise<number> {
-  const wasEnabled = full ? semanticStatus().enabled : false;
+  const wasEnabled = full && common.keywordOnly === null ? semanticStatus().enabled : false;
   const result = await sync({ projectsDir: common.projectsDir, rebuild: full });
   process.stdout.write(
     `Indexed ${result.indexedFiles} of ${result.scannedFiles} session files ` +
@@ -600,6 +628,14 @@ async function runReindex(common: CommonOptions, full: boolean): Promise<number>
       `${result.sessions} sessions, ${result.messages} messages, ${result.chunks} chunks\n`,
   );
   reportFailures(result.failedFiles);
+
+  // Keyword-only stops here, before anything asks about embeddings: the index
+  // is up to date, no model was touched, and the user is told how to change
+  // their mind. Whatever is already embedded stays on disk.
+  if (common.keywordOnly !== null) {
+    process.stdout.write(`${keywordOnlyNotice(common.keywordOnly)}\n`);
+    return 0;
+  }
 
   const state = semanticStatus();
   // `--reindex` is the explicit, interactive-by-nature command, so it is also
@@ -668,21 +704,29 @@ async function runStats(common: CommonOptions): Promise<number> {
   } catch (err) {
     if (!isUserError(err)) throw err;
   }
-  const s = status({ projectsDir: common.projectsDir });
+  const s = status({ projectsDir: common.projectsDir, keywordOnly: common.keywordOnly });
   if (common.json) {
     process.stdout.write(`${JSON.stringify(s, null, 2)}\n`);
     return 0;
   }
-  const smart = s.semantic.runtimeInstalled
-    ? s.semantic.enabled
-      ? s.semantic.pendingChunks === 0
-        ? 'on'
-        : `building (${s.semantic.pendingChunks} chunks left)`
-      : 'off (starts the first time you open the picker or the browser UI)'
-    : 'not installed (keyword search only)';
+  const smart =
+    s.keywordOnly !== null
+      ? `disabled (${s.keywordOnly})`
+      : s.semantic.runtimeInstalled
+        ? s.semantic.enabled
+          ? s.semantic.pendingChunks === 0
+            ? 'on'
+            : `building (${s.semantic.pendingChunks} chunks left)`
+          : 'off (starts the first time you open the picker or the browser UI)'
+        : 'not installed (keyword search only)';
   process.stdout.write(
     [
       `projects dir     ${s.projectsDir}`,
+      // Counts that came from another folder are never printed under this
+      // one's name: when they differ, both are on screen.
+      ...(s.projectsDirMatchesIndex || s.indexedProjectsDir === null
+        ? []
+        : [`index built from ${field(s.indexedProjectsDir)}`]),
       `index            ${s.dbPath} (${formatBytes(s.dbSizeBytes)})`,
       `sessions         ${s.sessions}`,
       `messages         ${s.messages}`,
@@ -772,10 +816,10 @@ function quoted(value: string): string {
   return JSON.stringify(sanitizeLine(value));
 }
 
-function parseMode(value: string | undefined, keywordOnly: boolean): SearchMode {
-  if (keywordOnly) {
+function parseMode(value: string | undefined, keywordOnly: KeywordOnlySource | null): SearchMode {
+  if (keywordOnly !== null) {
     if (value !== undefined && value !== 'keyword') {
-      throw new UserError(`--keyword-only and --mode ${quoted(value)} contradict each other.`);
+      throw new UserError(`${keywordOnly} and --mode ${quoted(value)} contradict each other.`);
     }
     return 'keyword';
   }

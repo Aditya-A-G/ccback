@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { UserError } from './errors.js';
-import { APP_NAME } from './paths.js';
+import { APP_NAME, canonicalDir } from './paths.js';
 import { whichSync } from './which.js';
 
 /** Lower case, starts with a letter, up to 16 characters. Nothing a shell can read as syntax. */
@@ -124,6 +124,13 @@ export interface AliasEnv {
   home: string;
   /** `$SHELL`, as the login shell reports it. */
   shell: string | undefined;
+  /**
+   * `$ZDOTDIR`. When it is set, zsh reads `$ZDOTDIR/.zshrc` and never looks at
+   * `~/.zshrc`, so writing the alias there would be silently useless.
+   */
+  zdotdir?: string | undefined;
+  /** `$XDG_CONFIG_HOME`. Moves fish's `fish/config.fish` and its `functions/` dir. */
+  xdgConfigHome?: string | undefined;
   platform: NodeJS.Platform;
   /** `PATH`, already split on the platform's separator. */
   pathEntries: string[];
@@ -142,6 +149,44 @@ export interface ShellTarget {
   shell: AliasShell;
   /** Startup file to append to. Empty for a shell we will not write for. */
   file: string;
+  /**
+   * Why there is no file, when the shell is known but its configuration
+   * directory has been moved somewhere this tool will not write. Shown to the
+   * user, who then gets the line to paste.
+   */
+  reason?: string | undefined;
+}
+
+/**
+ * Where a shell reads its startup file from, honouring the variable that moves
+ * it.
+ *
+ * Unset or empty means the default, which is what the shells themselves do.
+ * Anything else has to be an absolute path inside the home directory: a
+ * relative one resolves against wherever the tool happened to start, and one
+ * that leads out of `$HOME` is somebody else's tree. Neither is a file to
+ * append to unasked, so both end as a reason and the line to paste.
+ */
+function configDir(
+  value: string | undefined,
+  variable: string,
+  fallback: string,
+  home: string,
+): { dir: string; reason?: undefined } | { dir?: undefined; reason: string } {
+  if (value === undefined || value === '') return { dir: fallback };
+  const nothingChanged = `so ${APP_NAME} did not guess which file to write`;
+  if (!path.isAbsolute(value)) {
+    return { reason: `$${variable} is ${JSON.stringify(value)}, which is not an absolute path, ${nothingChanged}.` };
+  }
+  const resolved = path.resolve(value);
+  // Both sides through realpath, the way `resolveRcTarget` decides the same
+  // question: on macOS a home under `/var` really lives in `/private/var`, and
+  // comparing the two spellings would refuse a perfectly ordinary setup.
+  const inside = path.relative(canonicalDir(home), canonicalDir(resolved));
+  if (inside.startsWith('..') || path.isAbsolute(inside)) {
+    return { reason: `$${variable} (${resolved}) is outside your home directory, ${nothingChanged}.` };
+  }
+  return { dir: resolved };
 }
 
 /**
@@ -149,13 +194,23 @@ export interface ShellTarget {
  *
  * bash reads `~/.bashrc` on Linux; on macOS a login shell reads
  * `~/.bash_profile`, and plenty of macOS users have only that one, so it is
- * used when `.bashrc` is not there.
+ * used when `.bashrc` is not there. zsh and fish both let the environment move
+ * their configuration directory, and the file the shell will actually read is
+ * the only one worth writing to.
  */
 export function detectShell(env: AliasEnv): ShellTarget {
   if (env.platform === 'win32') return { shell: 'unknown', file: '' };
   const name = path.basename(env.shell ?? '').replace(/\.exe$/i, '');
-  if (name === 'zsh') return { shell: 'zsh', file: path.join(env.home, '.zshrc') };
-  if (name === 'fish') return { shell: 'fish', file: path.join(env.home, '.config', 'fish', 'config.fish') };
+  if (name === 'zsh') {
+    const home = configDir(env.zdotdir, 'ZDOTDIR', env.home, env.home);
+    if (home.dir === undefined) return { shell: 'zsh', file: '', reason: home.reason };
+    return { shell: 'zsh', file: path.join(home.dir, '.zshrc') };
+  }
+  if (name === 'fish') {
+    const base = configDir(env.xdgConfigHome, 'XDG_CONFIG_HOME', path.join(env.home, '.config'), env.home);
+    if (base.dir === undefined) return { shell: 'fish', file: '', reason: base.reason };
+    return { shell: 'fish', file: path.join(base.dir, 'fish', 'config.fish') };
+  }
   if (name === 'bash') {
     const bashrc = path.join(env.home, '.bashrc');
     if (fs.existsSync(bashrc)) return { shell: 'bash', file: bashrc };
@@ -347,9 +402,14 @@ export function definedInFile(contents: string, name: string, shell: AliasShell)
   return false;
 }
 
-/** fish keeps one function per file; a file here is as good as a definition. */
-export function fishFunctionFile(home: string, name: string): string {
-  return path.join(home, '.config', 'fish', 'functions', `${name}.fish`);
+/**
+ * fish keeps one function per file; a file here is as good as a definition.
+ *
+ * Derived from `config.fish` rather than from `$HOME`, so a fish that has been
+ * moved by `XDG_CONFIG_HOME` is checked where it really keeps its functions.
+ */
+export function fishFunctionFile(configFish: string, name: string): string {
+  return path.join(path.dirname(configFish), 'functions', `${name}.fish`);
 }
 
 function readIfExists(file: string): string | null {
@@ -408,6 +468,13 @@ export async function runAlias(rawName: string, env: AliasEnv): Promise<number> 
   const line = aliasLine(name, target.shell);
   const suggestion = name === DEFAULT_ALIAS ? 'ccf2' : DEFAULT_ALIAS;
 
+  // A known shell whose configuration directory has been pointed somewhere we
+  // will not write: say why, hand over the line, change nothing.
+  if (target.file === '') {
+    env.write(`${target.reason ?? 'There is no startup file to write.'}\n` + `Add this line yourself:\n  ${line}\n`);
+    return 0;
+  }
+
   // Everything below writes inside the home directory, so it has to be one:
   // `HOME=/` would put a startup file at the root of the filesystem, and a
   // relative or empty one resolves against wherever the tool happened to start.
@@ -416,7 +483,7 @@ export async function runAlias(rawName: string, env: AliasEnv): Promise<number> 
   // fish keeps one function per file, so the name can be taken without
   // config.fish saying anything at all.
   if (target.shell === 'fish') {
-    const functionFile = fishFunctionFile(env.home, name);
+    const functionFile = fishFunctionFile(target.file, name);
     if (fs.existsSync(functionFile)) {
       throw new UserError(
         `${name} is already a fish function: ${functionFile}\n` +

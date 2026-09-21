@@ -1,4 +1,4 @@
-import type { Db, Embedder } from '../core/index.js';
+import type { Db, Embedder, KeywordOnlySource } from '../core/index.js';
 import type { EmbedJob } from './embed-job.js';
 
 /** Everything a request handler needs. One per running server. */
@@ -15,6 +15,12 @@ export interface ServerContext {
   embedder: Embedder | undefined;
   /** State of the background semantic-indexing job, per server. */
   job: EmbedJob;
+  /**
+   * The switch that turned smart search off for this server, or null. When it
+   * is set no embedding job ever starts, every search is keyword, `/api/embed`
+   * refuses, and `/api/status` says so.
+   */
+  keywordOnly: KeywordOnlySource | null;
   /**
    * One advisory sentence to show under the results, set once at startup: the
    * `--no-sync` + mismatched `--projects-dir` warning. Reported by

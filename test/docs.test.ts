@@ -152,6 +152,55 @@ describe('the flags', () => {
   });
 });
 
+/**
+ * Every `SHOUTING_SNAKE` name the README mentions, with or without a `$`.
+ *
+ * The underscore is required: without it `PATH`, `README` and `BM25` come along
+ * and none of them is a variable this tool reads.
+ */
+function envVarsIn(text: string): Set<string> {
+  return new Set([...text.matchAll(/\$?\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)\b/g)].map((match) => match[1]!));
+}
+
+/** Everything under `src/`, concatenated, so a name can be looked for in one string. */
+function sourceText(): string {
+  const out: string[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(ts|tsx|js)$/.test(entry.name)) out.push(fs.readFileSync(full, 'utf8'));
+    }
+  };
+  walk(path.join(projectRoot, 'src'));
+  return out.join('\n');
+}
+
+/**
+ * `CCFIND_KEYWORD_ONLY` was documented in the README before anything read it.
+ * A flag the README invents is caught by the list above; an environment
+ * variable it invents was caught by nobody.
+ *
+ * Only this direction is checked: `CCFIND_DEBUG`, `CCFIND_NO_MODEL` and
+ * `SESSION_FINDER_HOME` exist on purpose without being documented.
+ */
+describe('the environment variables', () => {
+  const src = sourceText();
+
+  it('are all names something in src/ actually reads', () => {
+    for (const name of envVarsIn(readme)) {
+      expect(src, `${name} is in the README but nothing in src/ mentions it`).toContain(name);
+    }
+  });
+
+  it('includes the ones the README leans on', () => {
+    const documented = envVarsIn(readme);
+    for (const name of ['CCFIND_HOME', 'CLAUDE_CONFIG_DIR', 'CCFIND_KEYWORD_ONLY']) {
+      expect([...documented], name).toContain(name);
+    }
+  });
+});
+
 /** Rows an 80-column terminal spends on `text`, wrapping included. */
 function screenRows(text: string, columns = 80): number {
   return text

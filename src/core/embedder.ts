@@ -238,18 +238,20 @@ export async function createDefaultEmbedder(options: CreateEmbedderOptions = {})
     localModelPath: transformers.env['localModelPath'],
   };
 
-  transformers.env['allowLocalModels'] = false;
-  if (options.localOnly === true) {
-    // Local-files-only. transformers.js refuses to load anything when both local
-    // and remote are off, so serve the download cache as a local model folder:
-    // its layout (<cacheDir>/<org>/<model>/…) is exactly what that expects.
-    transformers.env['allowRemoteModels'] = false;
-    transformers.env['allowLocalModels'] = true;
-    transformers.env['localModelPath'] = cacheDir;
-  }
-
   let extractor: FeatureExtractor;
   try {
+    // Inside the `try`, so no exit path — not even a setter that throws — can
+    // leave the module's flags pointing at this one call's preferences.
+    transformers.env['allowLocalModels'] = false;
+    if (options.localOnly === true) {
+      // Local-files-only. transformers.js refuses to load anything when both local
+      // and remote are off, so serve the download cache as a local model folder:
+      // its layout (<cacheDir>/<org>/<model>/…) is exactly what that expects.
+      transformers.env['allowRemoteModels'] = false;
+      transformers.env['allowLocalModels'] = true;
+      transformers.env['localModelPath'] = cacheDir;
+    }
+
     try {
       extractor = await transformers.pipeline('feature-extraction', modelId, {
         dtype: options.dtype ?? 'q8',

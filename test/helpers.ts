@@ -18,6 +18,13 @@ export const SCRUBBED_ENV = [
   'CLAUDE_CONFIG_DIR',
   'NO_COLOR',
   'SHELL',
+  // Both move a shell's startup file. A developer who exports either of them
+  // would otherwise see every alias test take the print-the-line path.
+  'ZDOTDIR',
+  'XDG_CONFIG_HOME',
+  // Keyword-only is a whole-tool switch: a developer with it exported must not
+  // change what the suite exercises.
+  'CCFIND_KEYWORD_ONLY',
 ] as const;
 
 /** A `CLAUDE_CONFIG_DIR` that cannot exist, so a fall-through finds nothing. */

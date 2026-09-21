@@ -1,7 +1,14 @@
 import os from 'node:os';
 import type { ReactElement } from 'react';
 import { render as inkRender } from 'ink';
-import type { IndexStatus, Role, SessionResult, SyncProgress, SyncResult } from '../core/index.js';
+import type {
+  IndexStatus,
+  KeywordOnlySource,
+  Role,
+  SessionResult,
+  SyncProgress,
+  SyncResult,
+} from '../core/index.js';
 import {
   coreCloseIndex,
   coreEnableSemantic,
@@ -115,6 +122,11 @@ export interface TuiOptions {
   role?: 'user' | 'assistant' | undefined;
   projectsDir?: string | undefined;
   noSync?: boolean | undefined;
+  /**
+   * Set when smart search is off for this run. The picker then never asks about
+   * it, never starts it, and shows no line about it.
+   */
+  keywordOnly?: KeywordOnlySource | null | undefined;
   /** Accepted so the CLI can spread its common options; the picker ignores it. */
   json?: boolean | undefined;
 }

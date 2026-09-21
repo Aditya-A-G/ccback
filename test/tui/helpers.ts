@@ -125,6 +125,9 @@ export function makeSemanticStatus(overrides: Partial<SemanticStatus> = {}): Sem
 export function makeStatus(overrides: Partial<IndexStatus> = {}): IndexStatus {
   return {
     projectsDir: '/tmp/projects',
+    indexedProjectsDir: '/tmp/projects',
+    projectsDirMatchesIndex: true,
+    keywordOnly: null,
     projectsDirExists: true,
     projectsDirHint: null,
     dbPath: '/tmp/home/index.db',

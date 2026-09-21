@@ -13,6 +13,7 @@ interface FakeServer {
   url: string;
   closed: number;
   autoEmbed: boolean | undefined;
+  keywordOnly: string | null | undefined;
 }
 
 function fakeWeb(options: { running?: string | undefined; startDelayMs?: number } = {}): {
@@ -35,6 +36,7 @@ function fakeWeb(options: { running?: string | undefined; startDelayMs?: number 
         url: `http://127.0.0.1:${4777 + index}`,
         closed: 0,
         autoEmbed: opts.autoEmbed,
+        keywordOnly: opts.keywordOnly,
       };
       servers.push(server);
       return {
@@ -93,6 +95,22 @@ describe('the picker-owned web server', () => {
     const opener = createTranscriptOpener(web.bridge, { port: 4777 });
     await opener.openTranscript('s1');
     expect(web.servers[0]!.autoEmbed).toBe(false);
+  });
+
+  /**
+   * ^O starts a real server, which would happily embed for anybody who asked
+   * it to. A picker running keyword-only must not leave that door open behind
+   * itself.
+   */
+  it('passes keyword-only on to the server it starts', async () => {
+    const web = fakeWeb();
+    const opener = createTranscriptOpener(web.bridge, { port: 4777, keywordOnly: '--keyword-only' });
+    await opener.openTranscript('s1');
+    expect(web.servers[0]!.keywordOnly).toBe('--keyword-only');
+
+    const normal = fakeWeb();
+    await createTranscriptOpener(normal.bridge, { port: 4777 }).openTranscript('s1');
+    expect(normal.servers[0]!.keywordOnly).toBeNull();
   });
 
   it('reuses a server that is already running instead of starting one', async () => {
