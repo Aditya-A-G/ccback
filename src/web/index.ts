@@ -14,6 +14,7 @@
 import http from 'node:http';
 import type { WebOptions } from '../cli.js';
 import {
+  closeSharedDatabases,
   type Db,
   type Embedder,
   getSharedDatabase,
@@ -191,11 +192,21 @@ export async function runWeb(opts: WebOptions): Promise<number> {
   const stopped = new Promise<NodeJS.Signals>((resolve) => {
     announce = resolve;
   });
+  // The first Ctrl+C asks the startup sync to stop and then takes the ordinary
+  // shutdown; a second one is the user saying they meant it, and leaves at
+  // once, the same bargain `withInterrupt` makes for `--index`. Swallowing
+  // every signal after the first would leave somebody's first run, syncing a
+  // large ~/.claude, with no way out at all.
+  const syncing = new AbortController();
   const onSignal =
     (signal: NodeJS.Signals) =>
     (): void => {
-      if (received !== null) return;
+      if (received !== null) {
+        closeSharedDatabases();
+        process.exit(exitCodeFor(signal));
+      }
       received = signal;
+      syncing.abort();
       announce(signal);
     };
   const onInt = onSignal('SIGINT');
@@ -203,7 +214,7 @@ export async function runWeb(opts: WebOptions): Promise<number> {
   process.on('SIGINT', onInt);
   process.on('SIGTERM', onTerm);
   try {
-    return await serveUntilStopped(opts, stopped, () => received);
+    return await serveUntilStopped(opts, stopped, () => received, syncing.signal);
   } finally {
     process.off('SIGINT', onInt);
     process.off('SIGTERM', onTerm);
@@ -225,6 +236,7 @@ async function serveUntilStopped(
   opts: WebOptions,
   stopped: Promise<NodeJS.Signals>,
   alreadyStopped: () => NodeJS.Signals | null,
+  syncSignal: AbortSignal,
 ): Promise<number> {
   // A second `--web` is somebody asking to look at this, not asking for a
   // second server on a second port with a second copy of the index open.
@@ -246,7 +258,9 @@ async function serveUntilStopped(
   let setupHint = projectsDirExists(projectsDir) ? '' : missingProjectsDirMessage(projectsDir);
 
   if (!opts.noSync && setupHint === '') {
-    const result = await sync({ projectsDir: opts.projectsDir });
+    // Aborted by the first Ctrl+C: the sync stops between files and what it
+    // finished is kept, exactly as `ccfind --index` behaves.
+    const result = await sync({ projectsDir: opts.projectsDir, signal: syncSignal });
     if (result.indexedFiles > 0 || result.removedFiles > 0) {
       process.stderr.write(
         `Indexed ${result.indexedFiles} session${result.indexedFiles === 1 ? '' : 's'}` +
