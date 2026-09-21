@@ -259,7 +259,7 @@ describe('the CI workflow', () => {
     for (const os of ['ubuntu-latest', 'macos-latest', 'windows-latest']) {
       expect(workflow, os).toContain(os);
     }
-    expect(workflow).toContain('node: [20, 22]');
+    expect(workflow).toContain('node: [22, 24]');
     expect(workflow).toContain('fail-fast: false');
   });
 

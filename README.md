@@ -6,7 +6,7 @@ Claude Code keeps every transcript under `~/.claude/projects`, but you remember 
 
 Everything runs locally. Nothing leaves your machine, and your Claude directory is only ever read.
 
-Works on macOS, Linux and Windows. Needs Node 20 or newer.
+Works on macOS, Linux and Windows. Needs Node 22 or newer.
 
 ## Install
 
