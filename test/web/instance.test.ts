@@ -67,8 +67,12 @@ describe('the web.json marker', () => {
     expect(contents.port).toBe(handle.port);
     expect(contents.pid).toBe(process.pid);
     expect(Number.isNaN(Date.parse(contents.startedAt))).toBe(false);
-    // 0600: the port is a key to every transcript on this machine.
-    expect(fs.statSync(marker).mode & 0o777).toBe(0o600);
+    // 0600: the port is a key to every transcript on this machine. NTFS has no
+    // POSIX mode bits at all (Node reports 0666 for every file), so the mode is
+    // only asserted where it means something; what protects the marker on
+    // Windows is that it lives under `%USERPROFILE%`, whose inherited ACL is
+    // the user, SYSTEM and Administrators.
+    if (process.platform !== 'win32') expect(fs.statSync(marker).mode & 0o777).toBe(0o600);
     // No temporary file left next to it.
     expect(fs.readdirSync(fixture.home).filter((name) => name.includes('.tmp'))).toEqual([]);
 

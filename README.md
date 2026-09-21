@@ -97,6 +97,8 @@ The browser UI has the same search, a folder and date filter, a best-match / mos
 
 The web UI binds to `127.0.0.1` only, rejects requests with a foreign `Host` header, sends no CORS headers, and serves a strict Content-Security-Policy. Transcript text is never rendered as HTML. The only network request ccfind ever makes is the one-time model download.
 
+The running server records itself in `~/.ccfind/web.json`, which holds the secret that identifies it. That file is created `0600` on macOS and Linux. Windows has no POSIX file modes: there it lives in `%USERPROFILE%\.ccfind` and is protected by the ACL that folder inherits, which grants you, SYSTEM and local administrators — so on a shared Windows machine an administrator can read it.
+
 ## Development
 
 ```sh

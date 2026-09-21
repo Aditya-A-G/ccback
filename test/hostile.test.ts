@@ -129,7 +129,11 @@ describe('a session id can never reach a shell (must-fix 1)', () => {
     expect(buildResumeCommand('/tmp/app', 'ok-123')).toBe("cd '/tmp/app' && claude --resume 'ok-123'");
   });
 
-  it('quotes the id so /bin/sh would run nothing extra even if one got through', () => {
+  // A real POSIX shell is the only thing that can settle POSIX quoting, and
+  // Windows has none. The Windows equivalent — that a hostile id or folder can
+  // never reach cmd.exe — is proved in test/resume.test.ts, which runs the real
+  // `claude.cmd` spawn path there.
+  it.skipIf(process.platform === 'win32')('quotes the id so /bin/sh would run nothing extra even if one got through', () => {
     const dir = tempDir('sf-shim-');
     const marker = path.join(dir, 'PWNED');
     const argvFile = path.join(dir, 'argv.txt');
@@ -153,7 +157,9 @@ describe('a session id can never reach a shell (must-fix 1)', () => {
     expect(fs.readFileSync(argvFile, 'utf8')).toBe(`--resume\n${hostile}\n`);
   });
 
-  it('every resume command the CLI prints is inert in a real shell', () => {
+  // Same reason: `resumeCommand` is a POSIX one-liner the user can paste, and
+  // only /bin/sh can say whether it is inert.
+  it.skipIf(process.platform === 'win32')('every resume command the CLI prints is inert in a real shell', () => {
     const json = runCli(['recording videos', '--json']);
     expect(json.status).toBe(0);
     const results = JSON.parse(json.stdout) as { resumeCommand: string }[];

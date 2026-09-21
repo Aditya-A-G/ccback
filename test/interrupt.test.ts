@@ -189,8 +189,31 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
       child.on('exit', (code, signal) => {
         resolve({ code: code ?? (signal === 'SIGINT' ? 130 : -1), ms: Date.now() - started, child });
       });
-      // Give the harness a moment to install its handler.
-      setTimeout(() => child.kill('SIGINT'), 300);
+      // The harness says `ready` once its handler is installed. Signalling on a
+      // timer instead races a slow CI box: a SIGINT that lands before the
+      // listener exists hits Node's default disposition and kills the process
+      // outright, which looks exactly like the bug this test is here to catch.
+      void waitForReady(child).then(() => child.kill('SIGINT'));
+    });
+  }
+
+  /** Resolves when the harness has printed `ready` on stdout. */
+  function waitForReady(child: ReturnType<typeof spawn>): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let out = '';
+      const timer = setTimeout(() => reject(new Error(`harness never said ready: ${out}`)), 15_000);
+      child.stdout?.setEncoding('utf8');
+      child.stdout?.on('data', (chunk: string) => {
+        out += chunk;
+        if (out.includes('ready')) {
+          clearTimeout(timer);
+          resolve();
+        }
+      });
+      child.on('exit', () => {
+        clearTimeout(timer);
+        resolve();
+      });
     });
   }
 
@@ -215,6 +238,7 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
       const keepAlive = setInterval(() => {}, 1000);
       process.stdout.write('ready\\n');
       await withInterrupt(() => new Promise(() => {}));
+      process.stdout.write('shutting-down\\n');
       // A shutdown that never finishes: only a second Ctrl+C can end this.
       await new Promise(() => {});
       clearInterval(keepAlive);
@@ -232,9 +256,25 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
         resolve({ code: code ?? (signal === 'SIGINT' ? SIGINT_EXIT_CODE : -1), ms: Date.now() - started }),
       );
     });
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Both signals are sent on what the child says it is doing, not on a timer:
+    // the first once its handler exists, the second once the first one has been
+    // taken and the unfinishable shutdown has begun.
+    let out = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => {
+      out += chunk;
+    });
+    const sawLine = async (needle: string): Promise<void> => {
+      const deadline = Date.now() + 15_000;
+      while (!out.includes(needle)) {
+        if (Date.now() > deadline) throw new Error(`never said ${needle}: ${out}`);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    };
+
+    await sawLine('ready');
     child.kill('SIGINT');
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await sawLine('shutting-down');
     child.kill('SIGINT');
 
     const result = await exited;

@@ -5,6 +5,7 @@
  * conversation, `getMessage` for the full text, and the three smart-search
  * calls. The picker and the web UI are only allowed to know about these.
  */
+import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { Db } from '../src/core/db.js';
 import {
@@ -299,12 +300,16 @@ describe('where the tool keeps its own files', () => {
   it('prefers CCFIND_HOME, still honours the old variable, and can be overridden', () => {
     const previous = { ...process.env };
     try {
+      // `resolveAppHome` resolves what it is given, so the expectation is
+      // spelled the way this platform spells it: `D:\tmp\legacy-home` on
+      // Windows, `/tmp/legacy-home` everywhere else.
+      const spelled = (p: string): string => path.resolve(p);
       delete process.env[APP_HOME_ENV];
       process.env[LEGACY_APP_HOME_ENV] = '/tmp/legacy-home';
-      expect(resolveAppHome()).toBe('/tmp/legacy-home');
+      expect(resolveAppHome()).toBe(spelled('/tmp/legacy-home'));
       process.env[APP_HOME_ENV] = '/tmp/new-home';
-      expect(resolveAppHome()).toBe('/tmp/new-home');
-      expect(resolveAppHome('/tmp/explicit')).toBe('/tmp/explicit');
+      expect(resolveAppHome()).toBe(spelled('/tmp/new-home'));
+      expect(resolveAppHome('/tmp/explicit')).toBe(spelled('/tmp/explicit'));
     } finally {
       process.env = previous;
     }

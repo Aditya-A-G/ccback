@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Database from 'better-sqlite3';
-import { openDatabase, SCHEMA_VERSION, setMeta } from '../src/core/db.js';
+import { SCHEMA_VERSION, setMeta } from '../src/core/db.js';
 import { UserError } from '../src/core/errors.js';
 import { syncIndex } from '../src/core/indexer.js';
 import { status } from '../src/core/api.js';
@@ -18,6 +18,7 @@ import {
   childEnv,
   cleanupTempDirs,
   makeFixture,
+  openTrackedDb,
   tempDir,
   userMessage,
   writeSession,
@@ -94,7 +95,7 @@ describe('an unreadable index (ux 5)', () => {
   it('refuses an index from a newer build instead of wiping it', () => {
     const home = tempDir('sf-newer-');
     const dbPath = path.join(home, 'index.db');
-    const db = openDatabase(dbPath);
+    const db = openTrackedDb(dbPath);
     setMeta(db, 'schema_version', String(SCHEMA_VERSION + 7));
     db.close();
 
@@ -128,9 +129,13 @@ describe('an unreadable index (ux 5)', () => {
   });
 
   it('prints one line plus a debug hint for an error nobody planned for', () => {
-    // A home directory that cannot exist: the failure happens before SQLite is
-    // involved at all, so it is nobody's planned-for case.
-    const home = '/dev/null/session-finder-home';
+    // A home directory that cannot exist, on every platform: its parent is a
+    // regular file, so `mkdir` fails with ENOTDIR before SQLite is involved at
+    // all — nobody's planned-for case. (`/dev/null/...` only works on POSIX;
+    // on Windows it is a perfectly creatable `D:\dev\null\...`.)
+    const file = path.join(tempDir('sf-unplanned-'), 'not-a-directory');
+    fs.writeFileSync(file, 'a regular file where a folder would have to be\n');
+    const home = path.join(file, 'session-finder-home');
 
     const result = run(['recording', '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home });
     expect(result.status).toBe(1);
@@ -149,12 +154,12 @@ describe('an unreadable index (ux 5)', () => {
   it('an older schema version is migrated in place, not wiped', async () => {
     const home = tempDir('sf-old-');
     const dbPath = path.join(home, 'index.db');
-    const db = openDatabase(dbPath);
+    const db = openTrackedDb(dbPath);
     await syncIndex(db, { projectsDir: fixture.projectsDir });
     setMeta(db, 'schema_version', '1');
     db.close();
 
-    const reopened = openDatabase(dbPath);
+    const reopened = openTrackedDb(dbPath);
     expect(reopened.prepare('SELECT value FROM meta WHERE key = ?').get('schema_version')).toEqual({
       value: String(SCHEMA_VERSION),
     });
@@ -169,7 +174,9 @@ describe('an unreadable index (ux 5)', () => {
 /* -------------------------------------- 6. a transcript directory that is not there */
 
 describe('a missing transcripts directory (ux 6)', () => {
-  const missing = '/nonexistent-claude-projects-for-tests';
+  // Spelled the way this platform spells an absolute path: the product reports
+  // the directory it resolved, which on Windows is `D:\nonexistent-…`.
+  const missing = path.resolve('/nonexistent-claude-projects-for-tests');
 
   it('is a setup error with a hint, not an empty history', () => {
     for (const args of [['recording'], ['--reindex'], []]) {
@@ -198,7 +205,7 @@ describe('a missing transcripts directory (ux 6)', () => {
 
   it('is reported the same way by the core, for the TUI and the web to show', async () => {
     const home = tempDir('sf-missing-');
-    const db = openDatabase(path.join(home, 'index.db'));
+    const db = openTrackedDb(path.join(home, 'index.db'));
     await expect(syncIndex(db, { projectsDir: missing })).rejects.toBeInstanceOf(UserError);
 
     const info = status({ db, projectsDir: missing });

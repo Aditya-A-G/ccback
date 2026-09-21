@@ -178,9 +178,61 @@ export function transcriptUrl(handle: { url: string }, sessionId: string, messag
  * until Ctrl-C.
  */
 export async function runWeb(opts: WebOptions): Promise<number> {
+  // Ctrl+C is how this command ends, and a shell expects 130 from it — a `&&`
+  // chain after `ccfind -w` must not carry on as though the user was done.
+  //
+  // The handlers go on before any other work, not after the URL is printed:
+  // until a listener exists Node's default disposition for SIGINT is to kill
+  // the process outright, so a Ctrl+C during the startup sync ended the run
+  // with no exit code at all. Nothing has been created yet at that point, so
+  // an early stop also removes nothing.
+  let received: NodeJS.Signals | null = null;
+  let announce: (signal: NodeJS.Signals) => void = () => {};
+  const stopped = new Promise<NodeJS.Signals>((resolve) => {
+    announce = resolve;
+  });
+  const onSignal =
+    (signal: NodeJS.Signals) =>
+    (): void => {
+      if (received !== null) return;
+      received = signal;
+      announce(signal);
+    };
+  const onInt = onSignal('SIGINT');
+  const onTerm = onSignal('SIGTERM');
+  process.on('SIGINT', onInt);
+  process.on('SIGTERM', onTerm);
+  try {
+    return await serveUntilStopped(opts, stopped, () => received);
+  } finally {
+    process.off('SIGINT', onInt);
+    process.off('SIGTERM', onTerm);
+  }
+}
+
+/** What a shell reports for a process killed by this signal. */
+function exitCodeFor(signal: NodeJS.Signals): number {
+  return signal === 'SIGINT' ? SIGINT_EXIT_CODE : SIGTERM_EXIT_CODE;
+}
+
+/**
+ * The body of {@link runWeb}, with the signal handlers already installed.
+ *
+ * `alreadyStopped()` is checked after every await: a Ctrl+C that lands while
+ * the index is syncing should not go on to open a browser tab.
+ */
+async function serveUntilStopped(
+  opts: WebOptions,
+  stopped: Promise<NodeJS.Signals>,
+  alreadyStopped: () => NodeJS.Signals | null,
+): Promise<number> {
   // A second `--web` is somebody asking to look at this, not asking for a
   // second server on a second port with a second copy of the index open.
   const running = await findRunningWeb();
+  {
+    const early = alreadyStopped();
+    if (early !== null) return exitCodeFor(early);
+  }
   if (running !== null) {
     const url = searchUrl(running.url, opts.query);
     process.stdout.write(`${running.url} (already running)\n`);
@@ -210,6 +262,10 @@ export async function runWeb(opts: WebOptions): Promise<number> {
       );
     }
   }
+  {
+    const early = alreadyStopped();
+    if (early !== null) return exitCodeFor(early);
+  }
 
   // `--no-sync` with a `--projects-dir` the index was not built from. Said once
   // on stderr at startup, and carried to the page through `/api/status` so the
@@ -226,28 +282,27 @@ export async function runWeb(opts: WebOptions): Promise<number> {
     ...(opts.keywordOnly === null ? {} : { keywordOnly: opts.keywordOnly, autoEmbed: false }),
   });
 
+  // A signal that arrived while the server was coming up: it is listening now,
+  // so it is closed the same way a Ctrl+C at the prompt would close it, and the
+  // marker it just wrote is removed by the same `close()`.
+  {
+    const early = alreadyStopped();
+    if (early !== null) {
+      await handle.close();
+      return exitCodeFor(early);
+    }
+  }
+
   const sessions = recentSessions({ limit: 1 }).length;
   if (setupHint === '' && sessions === 0) setupHint = `${NO_SESSIONS_YET}. Start a Claude Code session and come back.`;
   process.stdout.write(`${handle.url}\n` + (setupHint === '' ? '' : `${setupHint}\n`) + 'Press Ctrl-C to stop.\n');
   if (opts.open) openInBrowser(searchUrl(handle.url, opts.query));
 
-  // Ctrl+C is how this command ends, and a shell expects 130 from it — a `&&`
-  // chain after `ccfind -w` must not carry on as though the user was done.
-  const signal = await new Promise<NodeJS.Signals>((resolve) => {
-    const stop = (received: NodeJS.Signals) => (): void => {
-      process.off('SIGINT', onInt);
-      process.off('SIGTERM', onTerm);
-      resolve(received);
-    };
-    const onInt = stop('SIGINT');
-    const onTerm = stop('SIGTERM');
-    process.on('SIGINT', onInt);
-    process.on('SIGTERM', onTerm);
-  });
+  const signal = await stopped;
 
   process.stderr.write('\n');
   await handle.close();
-  return signal === 'SIGINT' ? SIGINT_EXIT_CODE : SIGTERM_EXIT_CODE;
+  return exitCodeFor(signal);
 }
 
 /** What a shell reports for a process killed by SIGTERM. */

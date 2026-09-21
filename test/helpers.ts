@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { Db } from '../src/core/db.js';
-import { openDatabase } from '../src/core/db.js';
+import { closeSharedDatabases, openDatabase } from '../src/core/db.js';
 import type { Embedder } from '../src/core/embedder.js';
 
 const created: string[] = [];
@@ -58,9 +58,35 @@ export function tempDir(prefix = 'sf-test-'): string {
   return dir;
 }
 
+/**
+ * Every index handle this file opened, so cleanup can close the ones a failing
+ * assertion jumped over.
+ *
+ * Windows cannot unlink an open file: one `db.close()` skipped by a thrown
+ * expectation turns the temp-directory cleanup into `EBUSY` and takes the whole
+ * suite down with it, which is exactly what happened in CI.
+ */
+const opened: Db[] = [];
+
+/** Closes every index this file opened, plus the process-wide shared ones. */
+export function closeTestDatabases(): void {
+  for (const db of opened.splice(0)) {
+    try {
+      db.close();
+    } catch {
+      /* already closed by the test itself */
+    }
+  }
+  closeSharedDatabases();
+}
+
 export function cleanupTempDirs(): void {
+  closeTestDatabases();
   for (const dir of created.splice(0)) {
-    fs.rmSync(dir, { recursive: true, force: true });
+    // Windows holds a file open a moment after the last handle goes (the
+    // indexer's own child processes, and the virus scanner behind them), so a
+    // single attempt is not enough there.
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }
 
@@ -82,7 +108,16 @@ export function makeFixture(): Fixture {
 }
 
 export function openFixtureDb(fixture: Fixture): Db {
-  return openDatabase(fixture.dbPath);
+  const db = openDatabase(fixture.dbPath);
+  opened.push(db);
+  return db;
+}
+
+/** Same, for a test that opens an index somewhere other than a fixture. */
+export function openTrackedDb(dbPath: string): Db {
+  const db = openDatabase(dbPath);
+  opened.push(db);
+  return db;
 }
 
 export interface RecordOptions {

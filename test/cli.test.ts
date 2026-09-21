@@ -220,7 +220,13 @@ describe('cli plain output', () => {
     const lines = result.stderr.trim().split('\n');
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain('--no-sync');
-    expect(lines[0]).toContain(fixture.projectsDir);
+    // The folder the index records went through `canonicalDir`, so it is the
+    // name the filesystem itself uses: on Windows `os.tmpdir()` hands out the
+    // 8.3 short name (`C:\Users\RUNNER~1\…`) and the message prints the long
+    // one. On macOS the same call turns `/var/…` into `/private/var/…`.
+    expect(lines[0]).toContain(fs.realpathSync.native(fixture.projectsDir));
+    // The folder asked for is only resolved, not canonicalised, so it is
+    // echoed back exactly as it was spelled on the command line.
     expect(lines[0]).toContain(elsewhere);
     // stdout is still only results: a pipeline reads the same thing it did.
     expect((JSON.parse(result.stdout) as unknown[]).length).toBeGreaterThan(0);

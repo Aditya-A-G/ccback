@@ -57,7 +57,10 @@ describe('the marker carries a secret', () => {
     const fixture = await fixtureWithSession();
     writeInstanceFile(4777, { appHome: fixture.home });
     const marker = path.join(fixture.home, 'web.json');
-    expect(fs.statSync(marker).mode & 0o777).toBe(0o600);
+    // NTFS has no POSIX mode bits, so 0600 is only checked where it exists;
+    // on Windows the marker is protected by the ACL it inherits from
+    // `%USERPROFILE%`. See the note in test/web/instance.test.ts.
+    if (process.platform !== 'win32') expect(fs.statSync(marker).mode & 0o777).toBe(0o600);
 
     const instance = readInstanceFile({ appHome: fixture.home })!;
     expect(instance.token).toMatch(/^[0-9a-f]{32}$/);

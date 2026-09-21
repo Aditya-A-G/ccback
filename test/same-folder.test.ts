@@ -60,6 +60,19 @@ describe('sameDirectory', () => {
     fs.symlinkSync(real, link);
     expect(sameDirectory(real, link)).toBe(true);
   });
+
+  // Windows' other second spelling of one folder. `os.tmpdir()` on a CI runner
+  // hands out `C:\Users\RUNNER~1\…` while the same folder is really
+  // `C:\Users\runneradmin\…`; `--no-sync` would warn about a folder the user
+  // never changed if those two did not compare equal.
+  it.runIf(process.platform === 'win32')('sees through an 8.3 short-name spelling', () => {
+    const dir = tempDir('sf-same-short-');
+    const long = fs.realpathSync.native(dir);
+    // Only meaningful when this machine really does hand out a short name.
+    if (long === dir) return;
+    expect(sameDirectory(dir, long)).toBe(true);
+    expect(canonicalDir(dir)).toBe(long);
+  });
 });
 
 /** A fixture whose index records its own transcripts folder. */

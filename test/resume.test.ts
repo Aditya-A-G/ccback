@@ -1,9 +1,11 @@
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { buildResumeCommand, shellQuote, spawnResume } from '../src/core/resume.js';
 import { syncIndex } from '../src/core/indexer.js';
 import { search } from '../src/core/search.js';
-import { cleanupTempDirs, makeFixture, openFixtureDb, userMessage, writeSession } from './helpers.js';
+import { cleanupTempDirs, makeFixture, openFixtureDb, tempDir, userMessage, writeSession } from './helpers.js';
 
 afterAll(cleanupTempDirs);
 
@@ -19,7 +21,11 @@ describe('resume command quoting (criterion 11)', () => {
     );
   });
 
-  it('the quoted path survives a real shell round trip', () => {
+  // `shellQuote` produces POSIX single-quoting, and the only thing that can
+  // settle whether it is right is a POSIX shell. Windows has no `/bin/sh`, and
+  // the copyable command is not what starts `claude` there — the Windows spawn
+  // path is proved instead in "spawning claude" below.
+  it.skipIf(process.platform === 'win32')('the quoted path survives a real shell round trip', () => {
     for (const cwd of [
       "/tmp/my folder/it's here",
       '/tmp/a "quoted" dir',
@@ -136,4 +142,125 @@ describe('spawning claude', () => {
     expect(calls[0]!.command).toBe('claude');
     expect(calls[0]!.options.shell).toBeUndefined();
   });
+
+  // The Windows counterpart of the `/bin/sh` round trip above: `shell: true`
+  // means cmd.exe parses the command line, so the question is what is allowed
+  // onto it. The answer has to be "the shim path and nothing else".
+  it('keeps a hostile folder off the Windows command line entirely', async () => {
+    const hostile = [
+      'C:\\Users\\me\\a & calc.exe',
+      'C:\\Users\\me\\a | calc.exe',
+      'C:\\Users\\me\\a ^ b',
+      'C:\\Users\\me\\%PATH%',
+      'C:\\Users\\me\\a " b',
+      'C:\\Users\\me\\(paren) dir',
+      'C:\\Users\\me\\a && del /q *',
+    ];
+    for (const cwd of hostile) {
+      const { calls, spawn } = record();
+      await spawnResume({
+        cwd,
+        sessionId: 'abc-123',
+        spawn,
+        platform: 'win32',
+        which: () => 'C:\\Program Files\\nodejs\\claude.cmd',
+      });
+      const call = calls[0]!;
+      // Whatever the folder is called, it travels as an option.
+      expect([cwd, call.options.cwd]).toEqual([cwd, cwd]);
+      // …and never as text in the command line or the arguments.
+      expect([cwd, call.command]).toEqual([cwd, '"C:\\Program Files\\nodejs\\claude.cmd"']);
+      expect([cwd, call.args]).toEqual([cwd, ['--resume', 'abc-123']]);
+    }
+  });
+
+  it('refuses every hostile session id before a Windows shell could see it', async () => {
+    for (const id of ['a & calc', 'a | calc', 'a ^ b', '%PATH%', 'a" & calc & "', 'a (b)', 'a && del']) {
+      const { calls, spawn } = record();
+      await expect(
+        spawnResume({
+          cwd: 'C:\\app',
+          sessionId: id,
+          spawn,
+          platform: 'win32',
+          which: () => 'C:\\Program Files\\nodejs\\claude.cmd',
+        }),
+      ).rejects.toThrow(/unsafe session id/);
+      expect([id, calls]).toEqual([id, []]);
+    }
+  });
+});
+
+/**
+ * The Windows spawn path for real, with a `claude.cmd` on PATH.
+ *
+ * `.cmd` is the one case that goes through cmd.exe, so nothing here is proved
+ * by the injected-spawn tests above: this runs the actual shim, in a folder
+ * whose name contains every cmd.exe metacharacter a Windows path is allowed to
+ * hold (`| " < > : ? *` are illegal in a directory name).
+ */
+describe.runIf(process.platform === 'win32')('spawning a real claude.cmd on Windows', () => {
+  /** A `.cmd` that writes its working directory and each argument on its own line. */
+  function argvRecorderCmd(exitCode: number): string {
+    return [
+      '@echo off',
+      '>"%CCFIND_TEST_ARGV%" echo %CD%',
+      ':loop',
+      'if "%~1"=="" goto done',
+      '>>"%CCFIND_TEST_ARGV%" echo %~1',
+      'shift',
+      'goto loop',
+      ':done',
+      `exit /b ${exitCode}`,
+      '',
+    ].join('\r\n');
+  }
+
+  it('runs the shim in the session folder with the id as one argument', async () => {
+    const binDir = tempDir('sf-resume-bin-');
+    // A space is as far as `echo %CD%` can be pushed: cmd.exe expands `%VAR%`
+    // before it looks for `&`, so a folder whose *name* contains one cannot be
+    // echoed at all. The hostile names are covered by the next test, which
+    // never puts the folder on a command line.
+    const workdir = path.join(tempDir('sf-resume-cwd-'), 'my session folder');
+    fs.mkdirSync(workdir, { recursive: true });
+    const outFile = path.join(binDir, 'argv.txt');
+    // The shim reports where it ran and what it was given through an
+    // environment variable, so the file name never touches the command line.
+    fs.writeFileSync(path.join(binDir, 'claude.cmd'), argvRecorderCmd(7));
+    const previousPath = process.env['PATH'];
+    const previousOut = process.env['CCFIND_TEST_ARGV'];
+    process.env['PATH'] = `${binDir}${path.delimiter}${previousPath ?? ''}`;
+    process.env['CCFIND_TEST_ARGV'] = outFile;
+    try {
+      const code = await spawnResume({ cwd: workdir, sessionId: 'abc-123' });
+      expect(code).toBe(7);
+      const recorded = fs.readFileSync(outFile, 'utf8').trim().split(/\r?\n/);
+      expect(recorded[0]).toBe(fs.realpathSync.native(workdir));
+      expect(recorded.slice(1)).toEqual(['--resume', 'abc-123']);
+    } finally {
+      process.env['PATH'] = previousPath;
+      if (previousOut === undefined) delete process.env['CCFIND_TEST_ARGV'];
+      else process.env['CCFIND_TEST_ARGV'] = previousOut;
+    }
+  }, 20_000);
+
+  it('a hostile folder name is not a command, even through cmd.exe', async () => {
+    const binDir = tempDir('sf-resume-bin2-');
+    const marker = path.join(binDir, 'PWNED.txt');
+    // `& echo ... > PWNED.txt` would run if the folder ever reached a command
+    // line. It is a folder name, so it must only ever be a folder name.
+    const workdir = path.join(tempDir('sf-resume-cwd2-'), `a & echo pwned> ${path.basename(marker)}`);
+    fs.mkdirSync(workdir, { recursive: true });
+    fs.writeFileSync(path.join(binDir, 'claude.cmd'), '@echo off\r\nexit /b 0\r\n');
+    const previousPath = process.env['PATH'];
+    process.env['PATH'] = `${binDir}${path.delimiter}${previousPath ?? ''}`;
+    try {
+      expect(await spawnResume({ cwd: workdir, sessionId: 'abc-123' })).toBe(0);
+      expect(fs.existsSync(marker), 'the injected command must not have run').toBe(false);
+      expect(fs.existsSync(path.join(workdir, path.basename(marker)))).toBe(false);
+    } finally {
+      process.env['PATH'] = previousPath;
+    }
+  }, 20_000);
 });

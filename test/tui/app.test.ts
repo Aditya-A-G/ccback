@@ -1046,25 +1046,51 @@ describe('resume', () => {
     tempDirs.push(workdir);
     const outFile = path.join(dir, 'argv.txt');
     // A stand-in for the real `claude`, found through PATH exactly as the real
-    // one would be. The real CLI is never launched.
-    fs.writeFileSync(
-      path.join(dir, 'claude'),
-      `#!/bin/sh\nprintf '%s\\n' "$PWD" "$@" > ${JSON.stringify(outFile)}\nexit 7\n`,
-      { mode: 0o755 },
-    );
+    // one would be. The real CLI is never launched. On Windows `claude` is a
+    // `claude.cmd` shim and a `#!/bin/sh` script is not runnable at all, so the
+    // stand-in is written in the form that platform actually uses — the spawn
+    // path under test (`shell: true` for a `.cmd`) is the one that ships.
+    const onWindows = process.platform === 'win32';
+    if (onWindows) {
+      fs.writeFileSync(
+        path.join(dir, 'claude.cmd'),
+        [
+          '@echo off',
+          '>"%CCFIND_TEST_ARGV%" echo %CD%',
+          ':loop',
+          'if "%~1"=="" goto done',
+          '>>"%CCFIND_TEST_ARGV%" echo %~1',
+          'shift',
+          'goto loop',
+          ':done',
+          'exit /b 7',
+          '',
+        ].join('\r\n'),
+      );
+    } else {
+      fs.writeFileSync(
+        path.join(dir, 'claude'),
+        `#!/bin/sh\nprintf '%s\\n' "$PWD" "$@" > ${JSON.stringify(outFile)}\nexit 7\n`,
+        { mode: 0o755 },
+      );
+    }
     const previousPath = process.env['PATH'];
-    process.env['PATH'] = `${dir}:${previousPath ?? ''}`;
+    const previousOut = process.env['CCFIND_TEST_ARGV'];
+    process.env['PATH'] = `${dir}${path.delimiter}${previousPath ?? ''}`;
+    process.env['CCFIND_TEST_ARGV'] = outFile;
     try {
       const code = await defaultDeps().spawnResume({ cwd: workdir, sessionId: 'abc-123' });
       expect(code).toBe(7);
-      const recorded = fs.readFileSync(outFile, 'utf8').trim().split('\n');
-      expect(recorded[0]).toBe(fs.realpathSync(workdir));
+      const recorded = fs.readFileSync(outFile, 'utf8').trim().split(/\r?\n/);
+      expect(recorded[0]).toBe(onWindows ? fs.realpathSync.native(workdir) : fs.realpathSync(workdir));
       expect(recorded.slice(1)).toEqual(['--resume', 'abc-123']);
     } finally {
       process.env['PATH'] = previousPath;
+      if (previousOut === undefined) delete process.env['CCFIND_TEST_ARGV'];
+      else process.env['CCFIND_TEST_ARGV'] = previousOut;
     }
     expect(typeof spawnResume).toBe('function');
-  });
+  }, 20_000);
 });
 
 describe('clipboard and browser', () => {

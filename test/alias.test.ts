@@ -119,11 +119,36 @@ describe('clashes', () => {
     expect(fs.readdirSync(h.home)).toEqual([]);
   });
 
-  it('ignores a file on PATH that is not executable', async () => {
+  // NTFS has no execute bit, and Node's `fs.accessSync(file, X_OK)` on Windows
+  // succeeds for any readable file, so "a file that is not executable" is not a
+  // state that exists there. The Windows version of this question — "is a file
+  // with no extension a command?" — is the PATHEXT test just below, which runs
+  // everywhere.
+  it.skipIf(isWindows)('ignores a file on PATH that is not executable', async () => {
     const binDir = tempDir('sf-alias-bin2-');
     fs.writeFileSync(path.join(binDir, 'sf'), 'just a text file\n', { mode: 0o644 });
     const h = harness({ pathEntries: [binDir], assumeYes: true });
     expect(await runAlias('sf', h.env)).toBe(0);
+  });
+
+  it('on Windows, ignores an extension-less file and refuses a name PATHEXT can run', async () => {
+    const binDir = tempDir('sf-alias-bin3-');
+    const pathExt = ['.COM', '.EXE', '.BAT', '.CMD'];
+    // A bare `sf` is not a command on Windows: cmd.exe only runs a name that
+    // ends in something from PATHEXT.
+    fs.writeFileSync(path.join(binDir, 'sf'), 'just a text file\n');
+    const free = harness({ platform: 'win32', pathEntries: [binDir], pathExt, assumeYes: true });
+    expect(await runAlias('sf', free.env)).toBe(0);
+    expect(free.out()).toContain('Set-Alias sf ccfind');
+
+    // `sf.cmd` is, and gets the same refusal a POSIX executable would.
+    fs.writeFileSync(path.join(binDir, 'sf.cmd'), '@echo salesforce\r\n');
+    const taken = harness({ platform: 'win32', pathEntries: [binDir], pathExt, assumeYes: true });
+    // The name is reported with the extension PATHEXT spells, which is upper
+    // case; the filesystem it is found on is case-insensitive, as NTFS is.
+    await expect(runAlias('sf', taken.env)).rejects.toThrow(binDir);
+    await expect(runAlias('sf', taken.env)).rejects.toThrow(/[/\\]sf\.cmd$/im);
+    await expect(runAlias('sf', taken.env)).rejects.toThrow(/already a command/);
   });
 
   it('refuses a name the startup file already defines as an alias or function', async () => {
@@ -234,7 +259,9 @@ describe('the file it appends to', () => {
     expect(await runAlias('sf', h.env)).toBe(0);
     const after = read(rc);
     expect(after.startsWith(before)).toBe(true);
-    expect(fs.statSync(rc).mode & 0o777).toBe(0o600);
+    // NTFS has no POSIX mode bits: Node reports 0666 for every writable file
+    // there, so "the mode is preserved" is only a claim on POSIX.
+    if (!isWindows) expect(fs.statSync(rc).mode & 0o777).toBe(0o600);
   });
 });
 
@@ -271,8 +298,15 @@ describe('through the command line', () => {
       }),
     });
     expect([result.status, result.stderr]).toEqual([0, result.stderr]);
-    expect(fs.readFileSync(path.join(home, '.zshrc'), 'utf8')).toContain('alias sf=ccfind');
-    expect(result.stdout).toContain('Added.');
+    if (isWindows) {
+      // On Windows the product deliberately never writes: there is no startup
+      // file it could guess at, so `--yes` still only prints the line to paste.
+      expect(result.stdout).toContain('Set-Alias sf ccfind');
+      expect(fs.readdirSync(home)).toEqual([]);
+    } else {
+      expect(fs.readFileSync(path.join(home, '.zshrc'), 'utf8')).toContain('alias sf=ccfind');
+      expect(result.stdout).toContain('Added.');
+    }
   });
 
   it('an invalid name exits 2 with one line', () => {
