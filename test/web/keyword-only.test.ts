@@ -206,8 +206,8 @@ describe('ccfind -w --keyword-only, end to end', () => {
       [cliPath, '-w', '--keyword-only', '--port', '0', '--no-open', '--projects-dir', fixture.projectsDir],
       { env: childEnv({ CCFIND_HOME: fixture.home }), stdio: ['ignore', 'pipe', 'pipe'] },
     );
-    const exited = new Promise<number>((resolve) => {
-      child.on('exit', (code, signal) => resolve(code ?? (signal === null ? -1 : 0)));
+    const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
+      child.on('exit', (code, signal) => resolve({ code, signal }));
     });
 
     try {
@@ -240,6 +240,19 @@ describe('ccfind -w --keyword-only, end to end', () => {
     }
 
     // A shell expects 130 from a Ctrl-C, and the server must really go.
-    expect(await exited).toBe(130);
+    //
+    // Windows has no SIGINT to deliver from another process: `child.kill` there
+    // is TerminateProcess, so the handler never runs and 130 is not a code it
+    // could produce. What is still true on every platform is that the server
+    // really goes, so that is what is asserted there. The handled path is
+    // covered on POSIX here and in test/cli-grammar.test.ts.
+    const outcome = await exited;
+    if (process.platform === 'win32') {
+      // Terminated, never a clean 0 that a `&&` chain would walk straight past.
+      expect(outcome.code).not.toBe(0);
+      expect([outcome.code, outcome.signal]).toEqual([null, 'SIGINT']);
+    } else {
+      expect(outcome.code).toBe(130);
+    }
   }, 30_000);
 });

@@ -133,7 +133,10 @@ describe('clashes', () => {
 
   it('on Windows, ignores an extension-less file and refuses a name PATHEXT can run', async () => {
     const binDir = tempDir('sf-alias-bin3-');
-    const pathExt = ['.COM', '.EXE', '.BAT', '.CMD'];
+    // PATHEXT is matched case-insensitively on Windows; spelled in lower case
+    // here so the same candidate name also exists on a case-sensitive disk and
+    // the test is the same test on every platform.
+    const pathExt = ['.com', '.exe', '.bat', '.cmd'];
     // A bare `sf` is not a command on Windows: cmd.exe only runs a name that
     // ends in something from PATHEXT.
     fs.writeFileSync(path.join(binDir, 'sf'), 'just a text file\n');
@@ -142,12 +145,10 @@ describe('clashes', () => {
     expect(free.out()).toContain('Set-Alias sf ccfind');
 
     // `sf.cmd` is, and gets the same refusal a POSIX executable would.
-    fs.writeFileSync(path.join(binDir, 'sf.cmd'), '@echo salesforce\r\n');
+    const shim = path.join(binDir, 'sf.cmd');
+    fs.writeFileSync(shim, '@echo salesforce\r\n');
     const taken = harness({ platform: 'win32', pathEntries: [binDir], pathExt, assumeYes: true });
-    // The name is reported with the extension PATHEXT spells, which is upper
-    // case; the filesystem it is found on is case-insensitive, as NTFS is.
-    await expect(runAlias('sf', taken.env)).rejects.toThrow(binDir);
-    await expect(runAlias('sf', taken.env)).rejects.toThrow(/[/\\]sf\.cmd$/im);
+    await expect(runAlias('sf', taken.env)).rejects.toThrow(shim);
     await expect(runAlias('sf', taken.env)).rejects.toThrow(/already a command/);
   });
 

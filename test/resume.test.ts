@@ -236,7 +236,10 @@ describe.runIf(process.platform === 'win32')('spawning a real claude.cmd on Wind
       const code = await spawnResume({ cwd: workdir, sessionId: 'abc-123' });
       expect(code).toBe(7);
       const recorded = fs.readFileSync(outFile, 'utf8').trim().split(/\r?\n/);
-      expect(recorded[0]).toBe(fs.realpathSync.native(workdir));
+      // Both sides through realpath: cmd.exe reports `%CD%` in the spelling it
+      // was handed, and `os.tmpdir()` on a CI runner hands out the 8.3 short
+      // name. Same folder, two names.
+      expect(fs.realpathSync.native(recorded[0]!)).toBe(fs.realpathSync.native(workdir));
       expect(recorded.slice(1)).toEqual(['--resume', 'abc-123']);
     } finally {
       process.env['PATH'] = previousPath;
@@ -247,20 +250,27 @@ describe.runIf(process.platform === 'win32')('spawning a real claude.cmd on Wind
 
   it('a hostile folder name is not a command, even through cmd.exe', async () => {
     const binDir = tempDir('sf-resume-bin2-');
-    const marker = path.join(binDir, 'PWNED.txt');
-    // `& echo ... > PWNED.txt` would run if the folder ever reached a command
-    // line. It is a folder name, so it must only ever be a folder name.
-    const workdir = path.join(tempDir('sf-resume-cwd2-'), `a & echo pwned> ${path.basename(marker)}`);
-    fs.mkdirSync(workdir, { recursive: true });
-    fs.writeFileSync(path.join(binDir, 'claude.cmd'), '@echo off\r\nexit /b 0\r\n');
-    const previousPath = process.env['PATH'];
-    process.env['PATH'] = `${binDir}${path.delimiter}${previousPath ?? ''}`;
-    try {
-      expect(await spawnResume({ cwd: workdir, sessionId: 'abc-123' })).toBe(0);
-      expect(fs.existsSync(marker), 'the injected command must not have run').toBe(false);
-      expect(fs.existsSync(path.join(workdir, path.basename(marker)))).toBe(false);
-    } finally {
-      process.env['PATH'] = previousPath;
+    // `& md PWNED` would create a folder if this name ever reached a command
+    // line. It is a directory name, so it must only ever be a directory name.
+    // (`> | " < : ? *` cannot be tested this way: Windows will not let a
+    // directory be called that in the first place.)
+    const parent = tempDir('sf-resume-cwd2-');
+    for (const name of ['a & md PWNED', 'a ^ b %PATH%', 'x (paren) & md PWNED2']) {
+      const workdir = path.join(parent, name);
+      fs.mkdirSync(workdir, { recursive: true });
+      fs.writeFileSync(path.join(binDir, 'claude.cmd'), '@echo off\r\nexit /b 0\r\n');
+      const previousPath = process.env['PATH'];
+      process.env['PATH'] = `${binDir}${path.delimiter}${previousPath ?? ''}`;
+      try {
+        expect([name, await spawnResume({ cwd: workdir, sessionId: 'abc-123' })]).toEqual([name, 0]);
+        for (const pwned of ['PWNED', 'PWNED2']) {
+          expect([name, fs.existsSync(path.join(workdir, pwned))]).toEqual([name, false]);
+          expect([name, fs.existsSync(path.join(parent, pwned))]).toEqual([name, false]);
+          expect([name, fs.existsSync(path.join(binDir, pwned))]).toEqual([name, false]);
+        }
+      } finally {
+        process.env['PATH'] = previousPath;
+      }
     }
-  }, 20_000);
+  }, 30_000);
 });

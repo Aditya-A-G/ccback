@@ -1082,7 +1082,10 @@ describe('resume', () => {
       const code = await defaultDeps().spawnResume({ cwd: workdir, sessionId: 'abc-123' });
       expect(code).toBe(7);
       const recorded = fs.readFileSync(outFile, 'utf8').trim().split(/\r?\n/);
-      expect(recorded[0]).toBe(onWindows ? fs.realpathSync.native(workdir) : fs.realpathSync(workdir));
+      // Both sides through realpath: the shim reports the working directory in
+      // whatever spelling it was handed, and `os.tmpdir()` gives a symlinked
+      // `/var/…` on macOS and the 8.3 short name on Windows.
+      expect(fs.realpathSync.native(recorded[0]!)).toBe(fs.realpathSync.native(workdir));
       expect(recorded.slice(1)).toEqual(['--resume', 'abc-123']);
     } finally {
       process.env['PATH'] = previousPath;
