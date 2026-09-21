@@ -384,7 +384,7 @@ function dropEverything(db: Db): void {
 }
 
 /**
- * Drops and recreates every table, atomically. Backs `index --rebuild`: another
+ * Drops and recreates every table, atomically. Backs `--reindex --full`: another
  * process reading the index sees either the old content or an empty index,
  * never a half-dropped schema. The refill is the sync that follows, in its own
  * transactions, so a reader during a rebuild can legitimately see an index that

@@ -210,7 +210,7 @@ describe('cli plain output', () => {
   });
 
   it('--no-sync says so when the folder asked for is not the one the index holds', () => {
-    const elsewhere = tempDir('sf-cli-elsewhere-');
+    const elsewhere = tempDir('ccfind-cli-elsewhere-');
     writeSession(elsewhere, '-tmp-elsewhere', 'elsewhere-session', [
       userMessage('a session that lives somewhere else entirely', { cwd: '/tmp/elsewhere' }),
     ]);
@@ -240,7 +240,7 @@ describe('cli plain output', () => {
   });
 
   it('without --no-sync there is no warning: the index is brought over instead', () => {
-    const elsewhere = tempDir('sf-cli-elsewhere2-');
+    const elsewhere = tempDir('ccfind-cli-elsewhere2-');
     writeSession(elsewhere, '-tmp-elsewhere', 'elsewhere-session', [
       userMessage('a session that lives somewhere else entirely', { cwd: '/tmp/elsewhere' }),
     ]);

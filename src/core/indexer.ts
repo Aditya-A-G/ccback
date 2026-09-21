@@ -135,9 +135,10 @@ function assertSameProjectsDir(db: Db, projectsDir: string): void {
   const root = canonicalDir(projectsDir);
   let indexedRoot = getMeta(db, PROJECTS_DIR_META);
   if (indexedRoot === null) {
-    // Index from before this was recorded: the folder is two levels above any
-    // file it holds (<root>/<encoded-cwd>/<id>.jsonl). Always inferred, never
-    // assumed, or pointing at an ancestor such as ~ would slip through.
+    // An index with no recorded folder: infer it from any file it holds, which
+    // sits two levels down (<root>/<encoded-cwd>/<id>.jsonl). Always inferred
+    // from a real path, never assumed, or a folder pointing at an ancestor
+    // such as ~ would slip through the check below.
     const row = db.prepare('SELECT path FROM files LIMIT 1').get() as { path: string } | undefined;
     if (row) indexedRoot = path.dirname(path.dirname(row.path));
   }

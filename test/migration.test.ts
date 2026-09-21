@@ -1,8 +1,9 @@
 /**
  * Opening an index that is not in today's shape.
  *
- * The rule the second review asked for: a schema bump must never silently
- * throw embeddings away. An older version with a migration path is upgraded in
+ * A schema bump must never silently throw embeddings away: rebuilding them
+ * costs minutes of CPU, so they are expensive to lose without being told.
+ * An older version with a migration path is upgraded in
  * place; only a file nobody can interpret is rebuilt, and then the user is told
  * what that cost, once, on stderr.
  */
@@ -33,7 +34,8 @@ const cliPath = path.join(projectRoot, 'dist', 'cli.js');
 
 /**
  * Schema version 1: exactly today's schema without `files.state`. This is the
- * shape the owner's own index was in when the v1→v2 bump wiped it.
+ * shape an index left by an older install is in, and what a v1→v2 upgrade has
+ * to read without discarding.
  */
 const V1_SCHEMA_SQL = `
 CREATE TABLE files (
@@ -117,9 +119,9 @@ async function writeV1Database(dbPath: string): Promise<void> {
   db.close();
 }
 
-describe('an index written by schema version 1 (must-fix 2)', () => {
+describe('an index written by schema version 1', () => {
   it('is migrated in place, keeping every row and every embedding', async () => {
-    const home = tempDir('sf-v1-');
+    const home = tempDir('ccfind-v1-');
     const dbPath = path.join(home, 'index.db');
     await writeV1Database(dbPath);
 
@@ -230,7 +232,7 @@ async function writeV2Database(dbPath: string): Promise<void> {
 
 describe('an index written by schema version 2 (incremental embeddings)', () => {
   it('gains chunk digests in place, and every embedding survives', async () => {
-    const home = tempDir('sf-v2-');
+    const home = tempDir('ccfind-v2-');
     const dbPath = path.join(home, 'index.db');
     await writeV2Database(dbPath);
 
@@ -266,13 +268,13 @@ describe('an index written by schema version 2 (incremental embeddings)', () => 
   });
 
   it('carries those preserved embeddings across the next re-index of the session', async () => {
-    const home = tempDir('sf-v2-carry-');
+    const home = tempDir('ccfind-v2-carry-');
     const dbPath = path.join(home, 'index.db');
     await writeV2Database(dbPath);
 
-    // A real transcript holding the same two messages, plus one new one: this
-    // is the owner's situation the morning after the migration.
-    const projects = tempDir('sf-v2-carry-projects-');
+    // A real transcript holding the same two messages, plus one new one: the
+    // first sync after an upgrade, with a day of fresh conversation in it.
+    const projects = tempDir('ccfind-v2-carry-projects-');
     const file = writeSession(projects, '-tmp-video', 'video', [
       userMessage(CHUNK_TEXT, { cwd: '/tmp/video', timestamp: '2026-09-10T09:00:00.000Z' }),
       assistantMessage(SECOND_CHUNK_TEXT, { cwd: '/tmp/video', timestamp: '2026-09-10T10:00:00.000Z' }),
@@ -296,10 +298,10 @@ describe('an index written by schema version 2 (incremental embeddings)', () => 
   });
 });
 
-describe('an index nobody can interpret (should-fix 5, 6)', () => {
+describe('an index nobody can interpret', () => {
   // Must stay the first rebuild in this file: the warning is once per process.
   it('tells the user once what the rebuild cost, then works', async () => {
-    const home = tempDir('sf-v0-');
+    const home = tempDir('ccfind-v0-');
     const dbPath = path.join(home, 'index.db');
     await writeV1Database(dbPath);
     // Tables, but no version: the shape of a pre-versioning or half-written index.
@@ -337,7 +339,7 @@ describe('an index nobody can interpret (should-fix 5, 6)', () => {
   });
 
   it('recovers a database holding a view named like one of our tables', () => {
-    const home = tempDir('sf-view-');
+    const home = tempDir('ccfind-view-');
     const dbPath = path.join(home, 'index.db');
     const raw = new Database(dbPath);
     raw.exec(`CREATE TABLE junk(a); CREATE VIEW sessions AS SELECT 1 AS id; CREATE VIEW meta AS SELECT 1 AS key;`);
@@ -351,7 +353,7 @@ describe('an index nobody can interpret (should-fix 5, 6)', () => {
   });
 
   it('does not die with `no such column` on a versionless index', () => {
-    const home = tempDir('sf-nocol-');
+    const home = tempDir('ccfind-nocol-');
     const dbPath = path.join(home, 'index.db');
     // Tables of some ancestor shape, no `meta` row to say which: the sessions
     // table has no `last_ts`, which is what every query orders by.
@@ -361,7 +363,7 @@ describe('an index nobody can interpret (should-fix 5, 6)', () => {
     raw.prepare(`INSERT INTO sessions(id, cwd, title) VALUES ('old', '/tmp/old', 'An older index')`).run();
     raw.close();
 
-    const projects = tempDir('sf-nocol-projects-');
+    const projects = tempDir('ccfind-nocol-projects-');
     const result = spawnSync(process.execPath, [cliPath, 'anything', '--projects-dir', projects], {
       encoding: 'utf8',
       env: childEnv({ CCFIND_HOME: home }),
@@ -372,7 +374,7 @@ describe('an index nobody can interpret (should-fix 5, 6)', () => {
   });
 
   it('turns any SQLite failure during open into one actionable line, exit 2', () => {
-    const home = tempDir('sf-broken-');
+    const home = tempDir('ccfind-broken-');
     const dbPath = path.join(home, 'index.db');
     // Version 1, but the table the v1→v2 step has to alter is not there.
     const raw = new Database(dbPath);
@@ -392,7 +394,7 @@ describe('an index nobody can interpret (should-fix 5, 6)', () => {
   });
 });
 
-describe('opening a database that cannot do WAL (should-fix 4)', () => {
+describe('opening a database that cannot do WAL', () => {
   it('does not spin for the whole busy timeout', () => {
     const started = Date.now();
     const db = openDatabase(':memory:');
@@ -402,7 +404,7 @@ describe('opening a database that cannot do WAL (should-fix 4)', () => {
   });
 
   it('still opens a normal file in WAL', () => {
-    const home = tempDir('sf-wal-');
+    const home = tempDir('ccfind-wal-');
     const db = openDatabase(path.join(home, 'index.db'));
     expect(db.pragma('journal_mode', { simple: true })).toBe('wal');
     db.close();

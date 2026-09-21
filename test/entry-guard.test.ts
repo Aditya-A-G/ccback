@@ -1,9 +1,10 @@
 /**
  * Importing the CLI must not run the CLI.
  *
- * A reviewer's exploratory `import('dist/cli.js')` ran a full sync against the
- * owner's real index. `main()` only belongs to the process entry point — and
- * "entry point" has to survive the npm bin symlink (`…/bin/ccfind` -> `dist/cli.js`).
+ * Tools and editors import modules to inspect them, so an `import` of
+ * `dist/cli.js` must never sync or write an index: `main()` belongs to the
+ * process entry point alone. "Entry point" has to survive the npm bin symlink
+ * (`…/bin/ccfind` -> `dist/cli.js`), or the installed command does nothing.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -40,7 +41,7 @@ describe('entry point guard', () => {
 
     const result = spawnSync(process.execPath, [scriptPath], {
       encoding: 'utf8',
-      env: { ...env(), CCFIND_HOME: home, SESSION_FINDER_HOME: home },
+      env: { ...env(), CCFIND_HOME: home },
     });
 
     expect(result.stderr).toBe('');

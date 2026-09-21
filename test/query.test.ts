@@ -27,7 +27,7 @@ describe('parseQuery', () => {
   });
 });
 
-describe('buildFtsMatchQuery (criterion 8)', () => {
+describe('buildFtsMatchQuery', () => {
   it('quotes each term and ORs them', () => {
     expect(buildFtsMatchQuery(['record', 'video'])).toBe('"record" OR "video"');
   });

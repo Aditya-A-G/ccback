@@ -58,7 +58,7 @@ describe('status()', () => {
     expect(same.indexedProjectsDir).toBe(canonicalDir(fixture.projectsDir));
     expect(same.projectsDirMatchesIndex).toBe(true);
 
-    const elsewhere = tempDir('sf-stats-elsewhere-');
+    const elsewhere = tempDir('ccfind-stats-elsewhere-');
     const different = status({ dbPath: fixture.dbPath, projectsDir: elsewhere });
     expect(different.projectsDir).toBe(path.resolve(elsewhere));
     expect(different.indexedProjectsDir).toBe(canonicalDir(fixture.projectsDir));
@@ -86,7 +86,7 @@ describe('--stats', () => {
 
   it('shows both folders when the counts came from another one', async () => {
     const fixture = await indexed();
-    const elsewhere = tempDir('sf-stats-asked-');
+    const elsewhere = tempDir('ccfind-stats-asked-');
     const result = run(fixture, ['--no-sync', '--stats', '--projects-dir', elsewhere]);
     expect(result.status).toBe(0);
 
@@ -100,7 +100,7 @@ describe('--stats', () => {
 
   it('carries both into --json', async () => {
     const fixture = await indexed();
-    const elsewhere = tempDir('sf-stats-json-');
+    const elsewhere = tempDir('ccfind-stats-json-');
     const result = run(fixture, ['--no-sync', '--stats', '--json', '--projects-dir', elsewhere]);
     const body = JSON.parse(result.stdout) as IndexStatus;
     expect(body.projectsDir).toBe(path.resolve(elsewhere));
@@ -112,7 +112,7 @@ describe('--stats', () => {
 describe('/api/status', () => {
   it('reports both folders when they differ', async () => {
     const fixture = await indexed();
-    const elsewhere = tempDir('sf-stats-web-');
+    const elsewhere = tempDir('ccfind-stats-web-');
     const db = openFixtureDb(fixture);
     const handle = await startWebServer({
       port: 0,

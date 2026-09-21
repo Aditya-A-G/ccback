@@ -17,7 +17,7 @@ const ranked = (sessionId: string, matchCount = 1, snip: Snippet | null = null):
   snippet: snip,
 });
 
-describe('reciprocal rank fusion (criterion 10)', () => {
+describe('reciprocal rank fusion', () => {
   it('scores by 1/(k + rank) summed over lists', () => {
     const fused = reciprocalRankFusion([
       { source: 'keyword', sessions: [ranked('a'), ranked('b')] },

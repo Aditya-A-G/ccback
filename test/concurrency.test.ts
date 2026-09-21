@@ -50,7 +50,7 @@ function runIndex(home: string): Promise<Finished> {
   });
 }
 
-describe('concurrent first runs (must-fix 4)', () => {
+describe('concurrent first runs', () => {
   it('four processes indexing one fresh index all succeed', async () => {
     const home = path.join(fixture.root, 'concurrent-home');
     const results = await Promise.all([runIndex(home), runIndex(home), runIndex(home), runIndex(home)]);
@@ -89,7 +89,7 @@ describe('concurrent first runs (must-fix 4)', () => {
     expect((JSON.parse(search.stdout ?? '[]') as unknown[]).length).toBeGreaterThan(0);
   }, 60_000);
 
-  it('--rebuild is atomic: a concurrent reader never sees a half-dropped schema', async () => {
+  it('a full rebuild is atomic: a concurrent reader never sees a half-dropped schema', async () => {
     const home = path.join(fixture.root, 'rebuild-home');
     await runIndex(home);
 

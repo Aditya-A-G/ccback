@@ -28,9 +28,9 @@ interface Harness {
 }
 
 function harness(overrides: Partial<AliasEnv> & { answer?: string } = {}): Harness {
-  const home = tempDir('sf-alias-home-');
+  const home = tempDir('ccfind-alias-home-');
   // An empty PATH by default: the machine has nothing that could clash.
-  const emptyPath = tempDir('sf-alias-path-');
+  const emptyPath = tempDir('ccfind-alias-path-');
   const written: string[] = [];
   const asked: string[] = [];
   const env: AliasEnv = {
@@ -109,7 +109,7 @@ describe('the shell it writes for', () => {
 
 describe('clashes', () => {
   it('refuses a name that is already a command on PATH, and says which', async () => {
-    const binDir = tempDir('sf-alias-bin-');
+    const binDir = tempDir('ccfind-alias-bin-');
     const existing = path.join(binDir, 'sf');
     fs.writeFileSync(existing, '#!/bin/sh\necho salesforce\n', { mode: 0o755 });
 
@@ -125,14 +125,14 @@ describe('clashes', () => {
   // with no extension a command?" — is the PATHEXT test just below, which runs
   // everywhere.
   it.skipIf(isWindows)('ignores a file on PATH that is not executable', async () => {
-    const binDir = tempDir('sf-alias-bin2-');
+    const binDir = tempDir('ccfind-alias-bin2-');
     fs.writeFileSync(path.join(binDir, 'sf'), 'just a text file\n', { mode: 0o644 });
     const h = harness({ pathEntries: [binDir], assumeYes: true });
     expect(await runAlias('sf', h.env)).toBe(0);
   });
 
   it('on Windows, ignores an extension-less file and refuses a name PATHEXT can run', async () => {
-    const binDir = tempDir('sf-alias-bin3-');
+    const binDir = tempDir('ccfind-alias-bin3-');
     // PATHEXT is matched case-insensitively on Windows; spelled in lower case
     // here so the same candidate name also exists on a case-sensitive disk and
     // the test is the same test on every platform.
@@ -216,7 +216,7 @@ describe('consent', () => {
   });
 
   it('--yes still runs every check: a taken name is refused, not written', async () => {
-    const binDir = tempDir('sf-alias-yes-bin-');
+    const binDir = tempDir('ccfind-alias-yes-bin-');
     fs.writeFileSync(path.join(binDir, 'sf'), '#!/bin/sh\n', { mode: 0o755 });
     const h = harness({ isTty: false, assumeYes: true, pathEntries: [binDir] });
     await expect(runAlias('sf', h.env)).rejects.toSatisfy(isUserError);
@@ -270,14 +270,14 @@ describe('through the command line', () => {
   const cliPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'cli.js');
 
   it('a bare --alias uses the default name and, piped, only prints', () => {
-    const home = tempDir('sf-alias-cli-');
+    const home = tempDir('ccfind-alias-cli-');
     const result = spawnSync(process.execPath, [cliPath, '--alias'], {
       encoding: 'utf8',
       env: childEnv({
         HOME: home,
         USERPROFILE: home,
         SHELL: '/bin/zsh',
-        PATH: tempDir('sf-alias-cli-path-'),
+        PATH: tempDir('ccfind-alias-cli-path-'),
         CCFIND_HOME: home,
       }),
     });
@@ -287,14 +287,14 @@ describe('through the command line', () => {
   });
 
   it('--alias --yes writes the line even when piped', () => {
-    const home = tempDir('sf-alias-cli-yes-');
+    const home = tempDir('ccfind-alias-cli-yes-');
     const result = spawnSync(process.execPath, [cliPath, '--alias', '--yes'], {
       encoding: 'utf8',
       env: childEnv({
         HOME: home,
         USERPROFILE: home,
         SHELL: '/bin/zsh',
-        PATH: tempDir('sf-alias-cli-yes-path-'),
+        PATH: tempDir('ccfind-alias-cli-yes-path-'),
         CCFIND_HOME: home,
       }),
     });
@@ -311,7 +311,7 @@ describe('through the command line', () => {
   });
 
   it('an invalid name exits 2 with one line', () => {
-    const home = tempDir('sf-alias-cli-bad-');
+    const home = tempDir('ccfind-alias-cli-bad-');
     const result = spawnSync(process.execPath, [cliPath, '--alias', 'sf; rm -rf ~'], {
       encoding: 'utf8',
       env: childEnv({ HOME: home, USERPROFILE: home, SHELL: '/bin/zsh', CCFIND_HOME: home }),

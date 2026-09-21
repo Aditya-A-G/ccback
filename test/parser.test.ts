@@ -6,7 +6,7 @@ import { aiTitle, assistantMessage, cleanupTempDirs, makeFixture, userMessage, w
 
 afterAll(cleanupTempDirs);
 
-describe('text extraction (criterion 4)', () => {
+describe('text extraction', () => {
   it('keeps string content as-is', () => {
     expect(extractText('hello there')).toBe('hello there');
   });
@@ -48,7 +48,7 @@ describe('text extraction (criterion 4)', () => {
 });
 
 describe('session parsing', () => {
-  it('uses the cwd from the record, never the encoded directory name (criterion 3)', async () => {
+  it('uses the cwd from the record, never the encoded directory name', async () => {
     const fixture = makeFixture();
     // Encoded name is lossy: both "/" and a real "-" collapse to "-".
     const file = writeSession(fixture.projectsDir, '-tmp-my-cool-app', 'sess-dash', [
@@ -75,7 +75,7 @@ describe('session parsing', () => {
     expect((await readSessionFile(untitled))?.meta.title).toBe('the human question about recording videos');
   });
 
-  it('skips sidechain, meta, empty and noisy records (criterion 4)', async () => {
+  it('skips sidechain, meta, empty and noisy records', async () => {
     const fixture = makeFixture();
     const file = writeSession(fixture.projectsDir, '-tmp-a', 'filtered', [
       userMessage('keep this one'),
@@ -91,7 +91,7 @@ describe('session parsing', () => {
     expect(parsed?.messages.map((m) => m.text)).toEqual(['keep this one', 'and this one']);
   });
 
-  it('survives a truncated last line and garbage lines (criterion 5)', async () => {
+  it('survives a truncated last line and garbage lines', async () => {
     const fixture = makeFixture();
     const file = writeSession(
       fixture.projectsDir,

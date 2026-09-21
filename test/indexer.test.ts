@@ -16,14 +16,14 @@ import {
 
 afterAll(cleanupTempDirs);
 
-describe('subagent transcripts (criterion 2)', () => {
+describe('subagent transcripts', () => {
   it('never indexes files under <sessionId>/subagents/', async () => {
     const fixture = makeFixture();
-    writeSession(fixture.projectsDir, '-tmp-app', 'main-session', [
+    writeSession(fixture.projectsDir, '-tmp-app', 'parent-session', [
       userMessage('the visible parent conversation about pelicans', { cwd: '/tmp/app' }),
     ]);
 
-    const subagentDir = path.join(fixture.projectsDir, '-tmp-app', 'main-session', 'subagents');
+    const subagentDir = path.join(fixture.projectsDir, '-tmp-app', 'parent-session', 'subagents');
     fs.mkdirSync(subagentDir, { recursive: true });
     fs.writeFileSync(
       path.join(subagentDir, 'sub-1.jsonl'),
@@ -32,7 +32,7 @@ describe('subagent transcripts (criterion 2)', () => {
 
     const files = await listSessionFiles(fixture.projectsDir);
     expect(files).toHaveLength(1);
-    expect(files[0]).toMatch(/main-session\.jsonl$/);
+    expect(files[0]).toMatch(/parent-session\.jsonl$/);
 
     const db = openFixtureDb(fixture);
     const result = await syncIndex(db, { projectsDir: fixture.projectsDir });
@@ -40,13 +40,13 @@ describe('subagent transcripts (criterion 2)', () => {
 
     const hits = keywordSearch(db, 'pelicans');
     expect(hits).toHaveLength(1);
-    expect(hits[0]?.sessionId).toBe('main-session');
+    expect(hits[0]?.sessionId).toBe('parent-session');
     expect(db.prepare("SELECT COUNT(*) AS n FROM files WHERE path LIKE '%subagents%'").get()).toEqual({ n: 0 });
     db.close();
   });
 });
 
-describe('read-only guarantee (criterion 4 of the task brief)', () => {
+describe('read-only guarantee', () => {
   it('never writes anything inside the projects directory', async () => {
     const fixture = makeFixture();
     writeSession(fixture.projectsDir, '-tmp-app', 's1', [userMessage('hello world', { cwd: '/tmp/app' })]);
@@ -64,7 +64,7 @@ describe('read-only guarantee (criterion 4 of the task brief)', () => {
   });
 });
 
-describe('incremental sync (criterion 6)', () => {
+describe('incremental sync', () => {
   it('re-parses nothing when nothing changed', async () => {
     const fixture = makeFixture();
     writeSession(fixture.projectsDir, '-tmp-a', 's1', [userMessage('alpha content', { cwd: '/tmp/a' })]);
@@ -146,7 +146,7 @@ describe('incremental sync (criterion 6)', () => {
     db.close();
   });
 
-  it('--rebuild drops everything first', async () => {
+  it('a full rebuild drops everything first', async () => {
     const fixture = makeFixture();
     const file = writeSession(fixture.projectsDir, '-tmp-a', 's1', [
       userMessage('alpha content', { cwd: '/tmp/a' }),
@@ -161,7 +161,7 @@ describe('incremental sync (criterion 6)', () => {
     db.close();
   });
 
-  it('keeps indexing when one file is garbage (criterion 5)', async () => {
+  it('keeps indexing when one file is garbage', async () => {
     const fixture = makeFixture();
     writeSession(
       fixture.projectsDir,
@@ -178,9 +178,7 @@ describe('incremental sync (criterion 6)', () => {
   });
 });
 
-/* ------------------------------------------------- adversarial review fixes */
-
-describe('a file whose parse throws is retried, not written off (should-fix 9)', () => {
+describe('a file whose parse throws is retried, not written off', () => {
   // root can read a 0o000 file, and chmod on Windows only toggles the
   // read-only bit — neither can make a file genuinely unreadable.
   const rootOnly = process.getuid?.() === 0 || process.platform === 'win32';
@@ -233,7 +231,7 @@ describe('a file whose parse throws is retried, not written off (should-fix 9)',
   });
 });
 
-describe('the same session id in two folders (should-fix 11)', () => {
+describe('the same session id in two folders', () => {
   const twoCopies = (): { fixture: ReturnType<typeof makeFixture>; older: string; newer: string } => {
     const fixture = makeFixture();
     const older = writeSession(fixture.projectsDir, '-tmp-one', 'twin', [
@@ -303,8 +301,6 @@ describe('the same session id in two folders (should-fix 11)', () => {
     expect(keywordSearch(db, 'older copy').map((r) => r.sessionId)).toEqual(['twin']);
   });
 });
-
-/* ------------------------------------ second review, must-fix 3: ownership */
 
 describe('a newer file that yields nothing must not hide the older one', () => {
   // root can read a 0o000 file, and chmod on Windows only toggles the

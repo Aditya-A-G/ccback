@@ -463,11 +463,11 @@ export interface FinishOptions {
 /**
  * Leaves the picker for the shell prompt, promptly.
  *
- * Quitting while the smart-search model is still loading used to hang: the load
- * is inside native code that no AbortSignal reaches, and its handles keep the
- * event loop alive for as long as it takes to download 23 MB. `--reindex`
- * already had a guaranteed exit for exactly this; the interactive path needs
- * the same one. It is safe here because `runTui` has already restored the
+ * Quitting while the smart-search model is still loading would otherwise hang:
+ * the load is inside native code that no AbortSignal reaches, and its handles
+ * keep the event loop alive for as long as it takes to download 23 MB. So the
+ * interactive path gets the same guaranteed exit `--reindex` has. It is safe
+ * here because `runTui` has already restored the
  * terminal and, on Enter, already waited for `claude` to finish — so this
  * cannot cut anything off, and the child's exit code is what gets propagated.
  */

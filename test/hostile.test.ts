@@ -89,7 +89,7 @@ function runCli(args: string[]): { status: number; stdout: string; stderr: strin
 
 /* ------------------------------------------------------- 1. shell injection */
 
-describe('a session id can never reach a shell (must-fix 1)', () => {
+describe('a session id can never reach a shell', () => {
   it('refuses to index a file whose name is a shell command', async () => {
     const db = openFixtureDb(fixture);
     const rows = db.prepare('SELECT path, session_id, state FROM files').all() as {
@@ -134,7 +134,7 @@ describe('a session id can never reach a shell (must-fix 1)', () => {
   // never reach cmd.exe — is proved in test/resume.test.ts, which runs the real
   // `claude.cmd` spawn path there.
   it.skipIf(process.platform === 'win32')('quotes the id so /bin/sh would run nothing extra even if one got through', () => {
-    const dir = tempDir('sf-shim-');
+    const dir = tempDir('ccfind-shim-');
     const marker = path.join(dir, 'PWNED');
     const argvFile = path.join(dir, 'argv.txt');
     // A stand-in for `claude` that records its argv. The real CLI never runs.
@@ -165,7 +165,7 @@ describe('a session id can never reach a shell (must-fix 1)', () => {
     const results = JSON.parse(json.stdout) as { resumeCommand: string }[];
     expect(results.length).toBeGreaterThan(0);
 
-    const dir = tempDir('sf-shim2-');
+    const dir = tempDir('ccfind-shim2-');
     fs.writeFileSync(path.join(dir, 'claude'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
     for (const result of results) {
       const run = spawnSync('/bin/sh', ['-c', result.resumeCommand], {
@@ -192,7 +192,7 @@ function residualEscapes(text: string): string[] {
   return withoutSgr.match(/[\u001b\u0007]/g) ?? [];
 }
 
-describe('escape sequences never reach a terminal (must-fix 2)', () => {
+describe('escape sequences never reach a terminal', () => {
   it('strips control and format characters but keeps newlines and tabs', () => {
     expect(sanitizeText(`a${ESCAPES}b`)).toBe('a]0;PWNED[31mRED[0mb');
     expect(sanitizeText('a\nb\tc')).toBe('a\nb\tc');
@@ -245,7 +245,7 @@ describe('escape sequences never reach a terminal (must-fix 2)', () => {
 
 /* --------------------------------------------------------- 3. forged cwd */
 
-describe('a forged cwd cannot point at the launch folder (must-fix 3)', () => {
+describe('a forged cwd cannot point at the launch folder', () => {
   it('ignores records whose cwd is not absolute, and skips a session with only those', async () => {
     const parsed = await readSessionFile(path.join(fixture.projectsDir, '-tmp-dot', 'dot-session.jsonl'));
     expect(parsed, 'a session with no absolute cwd is skipped entirely').toBeNull();
@@ -257,7 +257,7 @@ describe('a forged cwd cannot point at the launch folder (must-fix 3)', () => {
   });
 
   it('takes the first absolute cwd when earlier records are relative', async () => {
-    const dir = tempDir('sf-mixed-');
+    const dir = tempDir('ccfind-mixed-');
     const file = writeSession(dir, '-tmp-mixed', 'mixed-session', [
       userMessage('first message with a relative cwd', { cwd: '..' }),
       assistantMessage('second message with a real cwd', { cwd: '/tmp/real-folder' }),
@@ -293,8 +293,6 @@ describe('a forged cwd cannot point at the launch folder (must-fix 3)', () => {
     expect('shell' in (calls[0]?.options ?? {})).toBe(false);
   });
 });
-
-/* ------------------------- second review, should-fix 8: exotic line breaks */
 
 describe('line separators that are not \\n', () => {
   it('become spaces, and are reported as control characters', () => {

@@ -249,10 +249,8 @@ describe('parameter validation', () => {
   });
 });
 
-/* ------------------------------------------------- adversarial review fixes */
-
 describe('hostile transcript text over the API', () => {
-  it('never returns an ESC or BEL byte in any string (must-fix 2)', async () => {
+  it('never returns an ESC or BEL byte in any string', async () => {
     const strings: string[] = [];
     const walk = (value: unknown): void => {
       if (typeof value === 'string') strings.push(value);
@@ -268,7 +266,7 @@ describe('hostile transcript text over the API', () => {
     expect(ESCAPE_TEXT).toMatch(/\u001b/);
   });
 
-  it('every session it returns has a routable id and an absolute folder (must-fix 1 and 3)', async () => {
+  it('every session it returns has a routable id and an absolute folder', async () => {
     const results = (await get('/api/search?q=')).json() as SessionResult[];
     expect(results.length).toBeGreaterThan(0);
     for (const result of results) {
@@ -280,7 +278,7 @@ describe('hostile transcript text over the API', () => {
   });
 });
 
-describe('GET /api/status tells the page which emptiness it is (ux 6)', () => {
+describe('GET /api/status tells the page which emptiness it is', () => {
   it('reports that the transcripts directory exists', async () => {
     const body = (await get('/api/status')).json() as {
       projectsDirExists: boolean;

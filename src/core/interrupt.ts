@@ -1,7 +1,7 @@
 /**
  * Ctrl+C that actually stops.
  *
- * Long work (`index --semantic`) can be stuck somewhere unabortable — loading
+ * Long work (`--reindex`) can be stuck somewhere unabortable — loading
  * or downloading a model — where an AbortSignal is only noticed between
  * batches. Racing the work against the signal means the first Ctrl+C returns
  * immediately whatever the work is doing; a second one is the user saying they

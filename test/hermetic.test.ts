@@ -1,12 +1,11 @@
 /**
  * The suite's own safety net.
  *
- * Two runs of this project's tooling wrote into a real `~/.ccfind` because
- * `CCFIND_HOME` was exported in the shell that started them: the test files set
- * the *legacy* variable on their children, and the inherited one outranked it.
- * So the run now sets its own home before any test module loads, every spawned
- * child is given one explicitly, and the real app home is stat-ed before and
- * after the run.
+ * A test run must never read or write the app home a person actually uses. One
+ * `CCFIND_HOME` exported in the shell that starts the suite is enough to point
+ * every child at a real index, so nothing is left to inheritance: the run sets
+ * its own home before any test module loads, every spawned child is given one
+ * explicitly, and the real app home is stat-ed before and after the run.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -60,7 +59,6 @@ describe('childEnv', () => {
       for (const key of SCRUBBED_ENV) process.env[key] = POISON_HOME;
       const env = childEnv({ CCFIND_HOME: '/tmp/explicit-home' });
       expect(env['CCFIND_HOME']).toBe('/tmp/explicit-home');
-      expect(env['SESSION_FINDER_HOME']).toBeUndefined();
       expect(env['CCFIND_DEBUG']).toBeUndefined();
       expect(env['SHELL']).toBeUndefined();
       expect(env['CLAUDE_CONFIG_DIR']).not.toBe(POISON_HOME);
@@ -78,8 +76,8 @@ describe('childEnv', () => {
 
 describe('a child process of a test', () => {
   it('indexes into the home it was given, even with a poisoned one inherited', () => {
-    const appHome = tempDir('sf-hermetic-home-');
-    const projects = tempDir('sf-hermetic-projects-');
+    const appHome = tempDir('ccfind-hermetic-home-');
+    const projects = tempDir('ccfind-hermetic-projects-');
     writeSession(projects, '-tmp-herm', 'herm', [
       userMessage('a session about recording videos', { cwd: '/tmp/herm' }),
     ]);
@@ -87,7 +85,7 @@ describe('a child process of a test', () => {
     const previous = process.env['CCFIND_HOME'];
     let result;
     try {
-      // Exactly what `CCFIND_HOME=... npx vitest run` used to do to us.
+      // Exactly what an exported `CCFIND_HOME` does to a test run.
       process.env['CCFIND_HOME'] = POISON_HOME;
       result = spawnSync(process.execPath, [cliPath, '--reindex', '--projects-dir', projects], {
         encoding: 'utf8',
@@ -106,13 +104,13 @@ describe('a child process of a test', () => {
 
 describe('the guard on the real app home', () => {
   it('says nothing when the directory does not exist', () => {
-    const missing = path.join(tempDir('sf-guard-'), 'never-created');
+    const missing = path.join(tempDir('ccfind-guard-'), 'never-created');
     expect(statSnapshot(missing)).toBeNull();
     expect(snapshotDifferences(statSnapshot(missing), statSnapshot(missing))).toEqual([]);
   });
 
   it('notices a file added, changed or removed under it', () => {
-    const dir = tempDir('sf-guard-app-');
+    const dir = tempDir('ccfind-guard-app-');
     fs.writeFileSync(path.join(dir, 'index.db'), 'one');
     fs.mkdirSync(path.join(dir, 'models'), { recursive: true });
     const before = statSnapshot(dir);
@@ -129,7 +127,7 @@ describe('the guard on the real app home', () => {
   });
 
   it('notices a run that creates the directory from nothing', () => {
-    const dir = path.join(tempDir('sf-guard-new-'), '.ccfind');
+    const dir = path.join(tempDir('ccfind-guard-new-'), '.ccfind');
     const before = statSnapshot(dir);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'index.db'), 'x');

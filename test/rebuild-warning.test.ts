@@ -1,5 +1,5 @@
 /**
- * `index --rebuild` throws the embeddings away too, and must say so.
+ * A full rebuild throws the embeddings away too, and must say so.
  *
  * Its own file because the warning is deliberately printed once per process:
  * a run that rebuilds twenty databases should not print twenty lines.
@@ -14,7 +14,7 @@ afterAll(cleanupTempDirs);
 
 describe('a deliberate rebuild', () => {
   it('stays quiet when there was nothing to lose', () => {
-    const home = tempDir('sf-rebuild-quiet-');
+    const home = tempDir('ccfind-rebuild-quiet-');
     const db = openDatabase(path.join(home, 'index.db'));
     const written: string[] = [];
     const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: string | Uint8Array) => {
@@ -31,7 +31,7 @@ describe('a deliberate rebuild', () => {
   });
 
   it('says once that semantic search needs indexing again', async () => {
-    const home = tempDir('sf-rebuild-');
+    const home = tempDir('ccfind-rebuild-');
     const db = openDatabase(path.join(home, 'index.db'));
     const [vector] = await fakeEmbedder().embed(['recording screencasts and editing the footage']);
     db.prepare('INSERT INTO chunks(message_id, session_id, text, embedding) VALUES (1, ?, ?, ?)').run(

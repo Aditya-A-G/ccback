@@ -1,10 +1,12 @@
 /**
- * Two ways the picker used to refuse to let go of the terminal.
+ * Quitting the picker has to give the terminal straight back.
  *
- * 1. `^O` twice in quick succession started two web servers; one was leaked,
- *    kept its listener open, and ccfind then never exited.
- * 2. Quitting while the smart-search model was still loading waited for a load
- *    no AbortSignal reaches, so the shell prompt came back minutes later.
+ * Two ways that can fail, both covered here:
+ *
+ * 1. `^O` twice in quick succession starts two web servers; a leaked one keeps
+ *    its listener open and the process never exits.
+ * 2. Quitting while the smart-search model is still loading waits on a load no
+ *    AbortSignal reaches, so the shell prompt comes back minutes later.
  */
 import { describe, expect, it, vi } from 'vitest';
 import { createTranscriptOpener, EXIT_GRACE_MS, finishInteractive, type WebBridge } from '../src/cli.js';

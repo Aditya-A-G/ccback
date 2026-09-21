@@ -14,7 +14,7 @@ import {
 
 afterAll(cleanupTempDirs);
 
-describe('ranking (criterion 7)', () => {
+describe('ranking', () => {
   let db: Db;
 
   beforeAll(async () => {
@@ -82,7 +82,7 @@ describe('ranking (criterion 7)', () => {
   });
 });
 
-describe('hostile queries (criterion 8)', () => {
+describe('hostile queries', () => {
   let db: Db;
 
   beforeAll(async () => {
@@ -126,7 +126,7 @@ describe('hostile queries (criterion 8)', () => {
   });
 });
 
-describe('filters (criterion 9)', () => {
+describe('filters', () => {
   let db: Db;
 
   beforeAll(async () => {

@@ -1,11 +1,11 @@
 /**
  * What the page itself is made of.
  *
- * There is no DOM in these tests, so they assert the things a review of the
- * UX asked for and that a person would otherwise have to re-check by eye: no
- * mode toggle anywhere, a sort control, the smart-search line under the
- * results rather than above them, and a reader bar that is fixed with the
- * scroll margin that keeps a linked message out from under it.
+ * There is no DOM in these tests, so they assert the layout facts a person
+ * would otherwise have to re-check by eye: no mode toggle anywhere, a sort
+ * control, the smart-search line under the results rather than above them, and
+ * a reader bar that is fixed with the scroll margin that keeps a linked message
+ * out from under it.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -122,7 +122,5 @@ describe('the page says ccfind', () => {
   it('in its title and in the document title it sets', () => {
     expect(html).toContain('<title>ccfind</title>');
     expect(js).toContain("' — ccfind'");
-    expect(html).not.toContain('session-finder');
-    expect(js).not.toContain('session-finder');
   });
 });

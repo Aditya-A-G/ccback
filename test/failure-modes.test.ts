@@ -58,9 +58,9 @@ const hasStack = (text: string): boolean => text.includes('    at ') || text.inc
 
 /* ------------------------------------------------------ 5. a broken index */
 
-describe('an unreadable index (ux 5)', () => {
+describe('an unreadable index', () => {
   it('explains it in one line with the fix, exit 2, for search, index, stats and web', () => {
-    const home = tempDir('sf-corrupt-');
+    const home = tempDir('ccfind-corrupt-');
     const dbPath = path.join(home, 'index.db');
     fs.writeFileSync(dbPath, 'this is definitely not a SQLite database\n'.repeat(40));
 
@@ -81,7 +81,7 @@ describe('an unreadable index (ux 5)', () => {
   });
 
   it('works again after deleting the file, exactly as the message says', () => {
-    const home = tempDir('sf-corrupt2-');
+    const home = tempDir('ccfind-corrupt2-');
     const dbPath = path.join(home, 'index.db');
     fs.writeFileSync(dbPath, 'garbage');
     expect(run(['recording', '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home }).status).toBe(2);
@@ -93,7 +93,7 @@ describe('an unreadable index (ux 5)', () => {
   });
 
   it('refuses an index from a newer build instead of wiping it', () => {
-    const home = tempDir('sf-newer-');
+    const home = tempDir('ccfind-newer-');
     const dbPath = path.join(home, 'index.db');
     const db = openTrackedDb(dbPath);
     setMeta(db, 'schema_version', String(SCHEMA_VERSION + 7));
@@ -115,7 +115,7 @@ describe('an unreadable index (ux 5)', () => {
   });
 
   it('says a directory where the index should be is unusable, in one line, exit 2', () => {
-    const home = tempDir('sf-weird-');
+    const home = tempDir('ccfind-weird-');
     // A directory where the index file should be: not corruption, just broken.
     // SQLite cannot open it, and the fix is the same as for a corrupt file.
     fs.mkdirSync(path.join(home, 'index.db'), { recursive: true });
@@ -133,9 +133,9 @@ describe('an unreadable index (ux 5)', () => {
     // regular file, so `mkdir` fails with ENOTDIR before SQLite is involved at
     // all — nobody's planned-for case. (`/dev/null/...` only works on POSIX;
     // on Windows it is a perfectly creatable `D:\dev\null\...`.)
-    const file = path.join(tempDir('sf-unplanned-'), 'not-a-directory');
+    const file = path.join(tempDir('ccfind-unplanned-'), 'not-a-directory');
     fs.writeFileSync(file, 'a regular file where a folder would have to be\n');
-    const home = path.join(file, 'session-finder-home');
+    const home = path.join(file, 'ccfind-home');
 
     const result = run(['recording', '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home });
     expect(result.status).toBe(1);
@@ -152,7 +152,7 @@ describe('an unreadable index (ux 5)', () => {
   });
 
   it('an older schema version is migrated in place, not wiped', async () => {
-    const home = tempDir('sf-old-');
+    const home = tempDir('ccfind-old-');
     const dbPath = path.join(home, 'index.db');
     const db = openTrackedDb(dbPath);
     await syncIndex(db, { projectsDir: fixture.projectsDir });
@@ -173,7 +173,7 @@ describe('an unreadable index (ux 5)', () => {
 
 /* -------------------------------------- 6. a transcript directory that is not there */
 
-describe('a missing transcripts directory (ux 6)', () => {
+describe('a missing transcripts directory', () => {
   // Spelled the way this platform spells an absolute path: the product reports
   // the directory it resolved, which on Windows is `D:\nonexistent-…`.
   const missing = path.resolve('/nonexistent-claude-projects-for-tests');
@@ -204,7 +204,7 @@ describe('a missing transcripts directory (ux 6)', () => {
   });
 
   it('is reported the same way by the core, for the TUI and the web to show', async () => {
-    const home = tempDir('sf-missing-');
+    const home = tempDir('ccfind-missing-');
     const db = openTrackedDb(path.join(home, 'index.db'));
     await expect(syncIndex(db, { projectsDir: missing })).rejects.toBeInstanceOf(UserError);
 
@@ -215,8 +215,8 @@ describe('a missing transcripts directory (ux 6)', () => {
   });
 
   it('an existing but empty directory is not an error', () => {
-    const empty = tempDir('sf-empty-projects-');
-    const home = tempDir('sf-empty-home-');
+    const empty = tempDir('ccfind-empty-projects-');
+    const home = tempDir('ccfind-empty-home-');
     const result = run(['recording', '--projects-dir', empty], { CCFIND_HOME: home });
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe('No sessions yet');
@@ -233,14 +233,14 @@ describe('a missing transcripts directory (ux 6)', () => {
   });
 });
 
-describe('files that could not be read (should-fix 9)', () => {
+describe('files that could not be read', () => {
   // root can read a 0o000 file, and chmod on Windows only toggles the
   // read-only bit — neither can make a file genuinely unreadable.
   const rootOnly = process.getuid?.() === 0 || process.platform === 'win32';
 
   it.skipIf(rootOnly)('are reported on stderr and retried, not silently dropped', () => {
-    const projects = tempDir('sf-unreadable-projects-');
-    const home = tempDir('sf-unreadable-home-');
+    const projects = tempDir('ccfind-unreadable-projects-');
+    const home = tempDir('ccfind-unreadable-home-');
     writeSession(projects, '-tmp-good', 'good', [userMessage('a readable session about videos', { cwd: '/tmp/good' })]);
     const broken = writeSession(projects, '-tmp-bad', 'bad', [
       userMessage('an unreadable session about videos', { cwd: '/tmp/bad' }),
@@ -266,7 +266,7 @@ describe('files that could not be read (should-fix 9)', () => {
 
 /* ------------------------------------------------- 7, 8, 12. honest output */
 
-describe('counts and flags (ux 7, 8 and should-fix 12)', () => {
+describe('counts and flags', () => {
   it('shows no count at all when browsing without a query', () => {
     const result = run(['--projects-dir', fixture.projectsDir]);
     expect(result.status).toBe(0);

@@ -1,12 +1,11 @@
 /**
  * The browser UI under keyword-only.
  *
- * `--keyword-only` used to reach the server as nothing at all: `ccfind -w
- * --keyword-only` started the background embedding job like any other run, so
- * the model was downloaded anyway and `/api/search?mode=semantic` was still
- * answered by meaning. Here the server refuses to embed, forces every search to
- * keyword whatever the request asks for, says `disabled` in its status, and the
- * page has nothing to show a setup line about.
+ * `ccfind -w --keyword-only` has to carry the switch all the way into the
+ * server, or the background embedding job starts like any other run and the
+ * model is downloaded anyway. So the server refuses to embed, forces every
+ * search to keyword whatever `/api/search?mode=` asks for, says `disabled` in
+ * its status, and the page has nothing to show a setup line about.
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';

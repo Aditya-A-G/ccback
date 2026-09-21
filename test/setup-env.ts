@@ -26,7 +26,6 @@ process.env['HOME'] = home;
 // os.homedir() reads USERPROFILE on Windows and HOME everywhere else.
 process.env['USERPROFILE'] = home;
 process.env['CCFIND_HOME'] = appHome;
-process.env['SESSION_FINDER_HOME'] = appHome;
 process.env['CCFIND_NO_MODEL'] = '1';
 process.env['CLAUDE_CONFIG_DIR'] = '/nonexistent-claude-config-dir-for-tests';
 process.env['NO_COLOR'] = '1';

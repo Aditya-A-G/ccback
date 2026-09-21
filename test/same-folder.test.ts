@@ -24,28 +24,28 @@ afterAll(cleanupTempDirs);
 
 describe('canonicalDir', () => {
   it('resolves a real directory the way the filesystem spells it', () => {
-    const dir = tempDir('sf-canon-');
+    const dir = tempDir('ccfind-canon-');
     expect(canonicalDir(dir)).toBe(fs.realpathSync.native(dir));
   });
 
   it('falls back to the resolved path when the directory is not there', () => {
-    const missing = path.join(tempDir('sf-canon-gone-'), 'nowhere');
+    const missing = path.join(tempDir('ccfind-canon-gone-'), 'nowhere');
     expect(canonicalDir(missing)).toBe(path.resolve(missing));
   });
 });
 
 describe('sameDirectory', () => {
   it('ignores a trailing separator', () => {
-    const dir = tempDir('sf-same-');
+    const dir = tempDir('ccfind-same-');
     expect(sameDirectory(dir, `${dir}${path.sep}`)).toBe(true);
   });
 
   it('says no to two different directories', () => {
-    expect(sameDirectory(tempDir('sf-same-a-'), tempDir('sf-same-b-'))).toBe(false);
+    expect(sameDirectory(tempDir('ccfind-same-a-'), tempDir('ccfind-same-b-'))).toBe(false);
   });
 
   it('compares text when neither side exists', () => {
-    const base = tempDir('sf-same-missing-');
+    const base = tempDir('ccfind-same-missing-');
     expect(sameDirectory(path.join(base, 'gone'), path.join(base, 'gone'))).toBe(true);
     expect(sameDirectory(path.join(base, 'gone'), path.join(base, 'other'))).toBe(false);
   });
@@ -53,7 +53,7 @@ describe('sameDirectory', () => {
   // Windows needs Developer Mode or elevation to create a symlink, so the
   // interesting case here cannot be set up there at all.
   it.skipIf(process.platform === 'win32')('sees through a symlinked spelling', () => {
-    const base = tempDir('sf-same-link-');
+    const base = tempDir('ccfind-same-link-');
     const real = path.join(base, 'real');
     const link = path.join(base, 'link');
     fs.mkdirSync(real);
@@ -66,7 +66,7 @@ describe('sameDirectory', () => {
   // `C:\Users\runneradmin\…`; `--no-sync` would warn about a folder the user
   // never changed if those two did not compare equal.
   it.runIf(process.platform === 'win32')('sees through an 8.3 short-name spelling', () => {
-    const dir = tempDir('sf-same-short-');
+    const dir = tempDir('ccfind-same-short-');
     const long = fs.realpathSync.native(dir);
     // Only meaningful when this machine really does hand out a short name.
     if (long === dir) return;
@@ -104,15 +104,16 @@ describe('projectsDirMismatch', () => {
   });
 
   /**
-   * The comment here used to claim that without `--projects-dir` the index and
-   * the request agree by construction. They do not: the default folder moves
-   * when `CLAUDE_CONFIG_DIR` changes, or when the index was built from a
-   * `--projects-dir` that is not being passed this time.
+   * Without `--projects-dir` the index and the request do not agree by
+   * construction: the default folder moves when `CLAUDE_CONFIG_DIR` changes,
+   * or when the index was built from a `--projects-dir` that is not being
+   * passed this time. Either way the user has to be told which folder the
+   * results came from.
    */
   it('still names both folders when the default folder is not the recorded one', async () => {
     const { db, projectsDir } = await indexed();
     const previous = process.env['CLAUDE_CONFIG_DIR'];
-    const elsewhere = tempDir('sf-default-elsewhere-');
+    const elsewhere = tempDir('ccfind-default-elsewhere-');
     process.env['CLAUDE_CONFIG_DIR'] = elsewhere;
     try {
       const line = projectsDirMismatch(undefined, { db });
@@ -142,7 +143,7 @@ describe('projectsDirMismatch', () => {
 
   it('names both folders when they differ', async () => {
     const { db, projectsDir } = await indexed();
-    const elsewhere = tempDir('sf-mismatch-');
+    const elsewhere = tempDir('ccfind-mismatch-');
     const line = projectsDirMismatch(elsewhere, { db });
     expect(line).not.toBeNull();
     expect(line).toContain('--no-sync');
@@ -157,7 +158,7 @@ describe('projectsDirMismatch', () => {
 
   it('sanitises the path it echoes back', async () => {
     const { db } = await indexed();
-    const hostile = path.join(tempDir('sf-hostile-'), 'esc\u001b[31mred\u0007');
+    const hostile = path.join(tempDir('ccfind-hostile-'), 'esc\u001b[31mred\u0007');
     const line = projectsDirMismatch(hostile, { db });
     expect(line).not.toBeNull();
     expect(line).not.toContain('\u001b');

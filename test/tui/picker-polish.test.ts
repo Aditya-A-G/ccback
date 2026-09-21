@@ -1,11 +1,13 @@
 /**
- * Three things the owner noticed, looking at the picker on a wide terminal.
+ * How the picker holds together as the terminal gets wider.
  *
- * 1. The title column filled the terminal, so the folder sat at the far right
- *    edge with 40 blank cells in between — two lists sharing a line, not a table.
- * 2. `^R sort: best match` was so long that the hint disappeared at 80 and even
- *    at 96 columns, which is where most people actually are.
- * 3. "match 1 of 50" was the fetch limit being read out as a count.
+ * 1. The title column is capped, so the folder stays next to the title instead
+ *    of drifting to the far edge with blank cells in between: one table, not
+ *    two lists sharing a line.
+ * 2. Footer hints are short enough to survive an 80- or 96-column terminal,
+ *    which is where most people are, so the keys stay visible.
+ * 3. "match 1 of 50" must be a real count, never the fetch limit read out as
+ *    one; past the limit it says so with a `+`.
  */
 import { describe, expect, it } from 'vitest';
 import { MATCH_LIMIT, previewHeader } from '../../src/tui/app.js';

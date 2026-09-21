@@ -1,11 +1,12 @@
 /**
  * The README is the behaviour contract, so it has to be true.
  *
- * It documented `Ctrl+S | start smart search`, a binding the picker
- * deliberately does not implement — a user pressing it got silence and no way
- * to tell whether it had worked. These tests fail when the key table lists a
- * binding the picker does not have, when it omits one the picker shows in its
- * footer, and when the flag lists in the README and `--help` drift apart.
+ * A documented key the picker does not implement leaves the user pressing it
+ * and getting silence, with no way to tell whether it worked; a key the picker
+ * offers but the README omits is never found. These tests fail when the key
+ * table lists a binding the picker does not have, when it omits one the picker
+ * shows in its footer, and when the flag lists in the README and `--help`
+ * drift apart.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -61,6 +62,21 @@ function footerControlKeys(): Set<string> {
     }
   }
   return out;
+}
+
+/**
+ * Everything the README says about `--alias`, as one string: the paragraph
+ * that introduces it and the bullets under it, up to the next heading.
+ */
+function aliasSection(): string {
+  const lines = readme.split('\n');
+  const start = lines.findIndex((line) => line.includes('--alias'));
+  if (start === -1) throw new Error('README says nothing about --alias');
+  const end = lines.findIndex((line, index) => index > start && line.startsWith('#'));
+  return lines
+    .slice(start, end === -1 ? undefined : end)
+    .join(' ')
+    .trim();
 }
 
 const key = (over: Partial<KeyFlags> = {}): Partial<KeyFlags> => over;
@@ -141,7 +157,7 @@ describe('the flags', () => {
     }
   });
 
-  it('includes --yes, which used to be in neither', () => {
+  it('documents --yes in both', () => {
     expect(helpFlags).toContain('yes');
     expect(readmeFlags).toContain('yes');
   });
@@ -177,12 +193,12 @@ function sourceText(): string {
 }
 
 /**
- * `CCFIND_KEYWORD_ONLY` was documented in the README before anything read it.
- * A flag the README invents is caught by the list above; an environment
- * variable it invents was caught by nobody.
+ * A variable the README names but nothing reads is a setting a user can spend
+ * an afternoon on and never see take effect. A flag the README invents is
+ * caught by the list above; an environment variable needs its own check.
  *
- * Only this direction is checked: `CCFIND_DEBUG`, `CCFIND_NO_MODEL` and
- * `SESSION_FINDER_HOME` exist on purpose without being documented.
+ * Only this direction is checked: `CCFIND_DEBUG` and `CCFIND_NO_MODEL` exist
+ * on purpose without being documented.
  */
 describe('the environment variables', () => {
   const src = sourceText();
@@ -210,8 +226,9 @@ function screenRows(text: string, columns = 80): number {
 }
 
 /**
- * `--help` used to be 30 lines, three of them wider than 80 columns, so the
- * title and the examples had scrolled off before the reader saw the options.
+ * `--help` has to fit the screen it is printed on: past 24 lines, or wider than
+ * 80 columns, the title and the examples have scrolled off before the reader
+ * reaches the options.
  */
 describe('--help', () => {
   it('fits one 24-line screen at 80 columns', () => {
@@ -284,13 +301,13 @@ describe('the CI workflow', () => {
 });
 
 /**
- * The alias paragraph made three promises the code did not keep: that it always
- * asks first (`--yes` does not), that it appends "that one line and nothing
- * else" (it appends a blank line, a comment and the alias), and that a
- * non-terminal run never writes (it does, with `--yes`).
+ * `--alias` is the one command that writes to a file the user owns, so the
+ * README has to describe it exactly: the whole block that gets appended, not
+ * just the alias line; that `--yes` skips the question; and that a run with no
+ * terminal still writes when `--yes` is passed.
  */
 describe('the README on --alias', () => {
-  const paragraph = readme.split('\n').find((line) => line.includes('--alias')) ?? '';
+  const paragraph = aliasSection();
 
   it('quotes the line the tool actually writes', () => {
     expect(paragraph).toContain(aliasLine(DEFAULT_ALIAS, 'zsh'));

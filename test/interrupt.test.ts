@@ -1,5 +1,5 @@
 /**
- * Ctrl+C during `index --semantic` (should-fix 10).
+ * Ctrl+C during `--reindex`.
  *
  * The hard case is the model load: it is not abortable, so the signal has to
  * win a race rather than be polled for. Nothing here downloads a model; the
@@ -180,7 +180,7 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
       cwd: projectRoot,
       // The harness touches no files, but it still gets its own app home:
       // nothing spawned by a test may inherit one from the developer's shell.
-      env: childEnv({ CCFIND_HOME: tempDir('sf-interrupt-home-') }),
+      env: childEnv({ CCFIND_HOME: tempDir('ccfind-interrupt-home-') }),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const started = Date.now();
@@ -247,7 +247,7 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
       cwd: projectRoot,
       // The harness touches no files, but it still gets its own app home:
       // nothing spawned by a test may inherit one from the developer's shell.
-      env: childEnv({ CCFIND_HOME: tempDir('sf-interrupt-home-') }),
+      env: childEnv({ CCFIND_HOME: tempDir('ccfind-interrupt-home-') }),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const started = Date.now();

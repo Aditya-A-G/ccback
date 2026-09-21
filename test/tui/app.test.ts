@@ -661,7 +661,7 @@ describe('the full message view', () => {
   });
 
   it('resumes straight from the expanded view', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
     tempDirs.push(workdir);
     const tui = startTui({
       deps: {
@@ -928,7 +928,7 @@ describe('smart search sets itself up', () => {
   });
 
   it('aborts the background work before resuming', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
     tempDirs.push(workdir);
     const order: string[] = [];
     const tui = startTui({
@@ -959,7 +959,7 @@ describe('smart search sets itself up', () => {
 
 describe('resume', () => {
   it('Enter resumes the selected session and resolves with the spawner exit code', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
     tempDirs.push(workdir);
     const result = makeResult({ sessionId: 'sess-42', cwd: workdir, cwdExists: true });
     const tui = startTui({
@@ -997,7 +997,7 @@ describe('resume', () => {
   });
 
   it('prints the command instead of crashing when claude is not on PATH', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
     tempDirs.push(workdir);
     const result = makeResult({ sessionId: 'sess-9', cwd: workdir });
     const tui = startTui({
@@ -1017,7 +1017,7 @@ describe('resume', () => {
   });
 
   it('blames the folder, not the PATH, when the cwd vanished before the spawn', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-tui-gone-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-gone-'));
     tempDirs.push(workdir);
     const result = makeResult({ sessionId: 'sess-10', cwd: workdir });
     const tui = startTui({
@@ -1040,9 +1040,9 @@ describe('resume', () => {
   });
 
   it('runs `claude --resume <id>` in the session folder', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-tui-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-'));
     tempDirs.push(dir);
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
     tempDirs.push(workdir);
     const outFile = path.join(dir, 'argv.txt');
     // A stand-in for the real `claude`, found through PATH exactly as the real
@@ -1384,8 +1384,6 @@ describe('quitting', () => {
   });
 });
 
-/* ------------------------------------------------- adversarial review fixes */
-
 /** ESC and BEL bytes that are not part of an SGR colour the UI wrote itself. */
 function residualEscapes(frame: string): string[] {
   // eslint-disable-next-line no-control-regex
@@ -1459,7 +1457,7 @@ describe('hostile transcript text in the TUI', () => {
 
 describe('the TUI never resumes into the wrong folder', () => {
   it('refuses to spawn when the folder disappeared after the index was written', async () => {
-    const gone = fs.mkdtempSync(path.join(os.tmpdir(), 'sf-tui-gone-'));
+    const gone = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-gone-'));
     fs.rmSync(gone, { recursive: true, force: true });
     const result = makeResult({ sessionId: 'sess-gone', cwd: gone, cwdExists: true });
     const tui = startTui({ deps: { recentSessions: () => [result] } });

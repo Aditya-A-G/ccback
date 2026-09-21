@@ -161,7 +161,8 @@ export function classifyKey(input: string, key: Partial<KeyFlags>): KeyAction | 
   if (key.pageDown) return { type: 'pageDown' };
   if (key.home) return { type: 'lineStart' };
   if (key.end) return { type: 'lineEnd' };
-  // Tab no longer does anything: the mode switcher is gone.
+  // Tab is deliberately unbound: search has one mode, so there is nothing to
+  // cycle, and inserting a tab into the query would only be noise.
   if (key.tab) return null;
 
   if (input.length > 1) {

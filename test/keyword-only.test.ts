@@ -1,12 +1,11 @@
 /**
  * Keyword-only, from the command line.
  *
- * `--keyword-only` used to mean "rank by keywords this time" and nothing more:
- * every front end still went and set smart search up in the background, which
- * is a 23 MB download for somebody who had just said they did not want one.
- * The promise now is stronger — nothing loads transformers, downloads a model
- * or embeds a chunk — so the tests count *load attempts* rather than reading
- * the output and hoping.
+ * `--keyword-only` means no model work of any kind: nothing loads the embedding
+ * library, downloads a model or embeds a chunk. A user who opts out must never
+ * pay a 23 MB download for it, so ranking by keywords this time is not enough —
+ * the background setup has to stay off too. The tests therefore count *load
+ * attempts* rather than reading the output and hoping.
  *
  * `createDefaultEmbedder` is the only door to `@huggingface/transformers` in
  * the whole tool, so a counter around it is that count. The real one is left
@@ -82,7 +81,6 @@ async function cli(args: string[], env: Record<string, string | undefined> = {})
     else process.env[key] = value;
   };
   set('CCFIND_HOME', fixture.home);
-  set('SESSION_FINDER_HOME', fixture.home);
   set(KEYWORD_ONLY_ENV, undefined);
   for (const [key, value] of Object.entries(env)) set(key, value);
 

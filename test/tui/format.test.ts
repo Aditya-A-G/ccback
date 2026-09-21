@@ -481,8 +481,6 @@ describe('fitFooter', () => {
   });
 });
 
-/* ---------------------------------- second review, should-fix 8: real cells */
-
 describe('width in terminal cells, not code points', () => {
   const CJK = '日本語のセッション記録について話した長いタイトル';
   const EMOJI = '😀😀😀 recording videos 🎥🎬';

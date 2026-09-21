@@ -1,11 +1,11 @@
 /**
  * Proving a server is *ours* before handing it the user's query.
  *
- * `web.json` records a port. A stale marker plus a squatted port used to be
- * enough: any local process answering `{"app":"ccfind"}` got the browser opened
- * on it, with the search terms in the URL. So the marker now carries a secret
- * only its writer knows, and the server proves it knows it without the secret
- * ever crossing the wire.
+ * `web.json` records a port, and a port is not an identity: with a stale marker
+ * and a squatted port, any local process answering `{"app":"ccfind"}` would get
+ * the browser opened on it, with the search terms in the URL. So the marker
+ * carries a secret only its writer knows, and the server proves it knows it
+ * without the secret ever crossing the wire.
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';

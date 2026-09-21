@@ -13,7 +13,6 @@ const created: string[] = [];
  */
 export const SCRUBBED_ENV = [
   'CCFIND_HOME',
-  'SESSION_FINDER_HOME',
   'CCFIND_DEBUG',
   'CLAUDE_CONFIG_DIR',
   'NO_COLOR',
@@ -52,7 +51,7 @@ export function childEnv(overrides: Record<string, string | undefined> = {}): No
 }
 
 /** Fresh temp directory, removed by `cleanupTempDirs()`. */
-export function tempDir(prefix = 'sf-test-'): string {
+export function tempDir(prefix = 'ccfind-test-'): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   created.push(dir);
   return dir;
@@ -64,7 +63,7 @@ export function tempDir(prefix = 'sf-test-'): string {
  *
  * Windows cannot unlink an open file: one `db.close()` skipped by a thrown
  * expectation turns the temp-directory cleanup into `EBUSY` and takes the whole
- * suite down with it, which is exactly what happened in CI.
+ * suite down with it.
  */
 const opened: Db[] = [];
 

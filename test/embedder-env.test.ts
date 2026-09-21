@@ -2,9 +2,9 @@
  * `transformers.env` is module-global, so one load's settings outlive it.
  *
  * A scripted run (`-p`, `--json`) loads local-files-only and switches remote
- * loading off. That switch used to stay off for the rest of the process, so a
- * picker that had answered one query from the cache could no longer download
- * the model it was about to need. Nothing here reaches the network: the
+ * loading off, so it has to switch it back: left off, it would stay off for the
+ * rest of the process, and a later load in the same process could not download
+ * the model it needs. Nothing here reaches the network: the
  * transformers package is replaced with a fake that records what it was handed.
  */
 import fs from 'node:fs';
@@ -66,7 +66,7 @@ beforeEach(() => fake.__reset());
 
 describe('a localOnly load', () => {
   it('loads from the cache without reaching the network', async () => {
-    const cacheDir = tempDir('sf-env-cache-');
+    const cacheDir = tempDir('ccfind-env-cache-');
     await withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }));
 
     expect(fake.__calls).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('a localOnly load', () => {
   });
 
   it('leaves remote loading enabled for the next load in the same process', async () => {
-    const cacheDir = tempDir('sf-env-cache-');
+    const cacheDir = tempDir('ccfind-env-cache-');
     await withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }));
 
     // What a normal load sees afterwards: this is the regression.
@@ -92,7 +92,7 @@ describe('a localOnly load', () => {
   });
 
   it('puts the flags back even when the model could not be loaded at all', async () => {
-    const cacheDir = tempDir('sf-env-cache-');
+    const cacheDir = tempDir('ccfind-env-cache-');
     fake.__reset(2);
     await expect(withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }))).rejects.toThrow(
       /cannot load/,
@@ -102,7 +102,7 @@ describe('a localOnly load', () => {
   });
 
   it('records the model as ready only once a pipeline really came back', async () => {
-    const cacheDir = tempDir('sf-env-cache-');
+    const cacheDir = tempDir('ccfind-env-cache-');
     fake.__reset(2);
     await expect(withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }))).rejects.toThrow();
     expect(fs.existsSync(path.join(cacheDir, 'Xenova'))).toBe(false);
@@ -120,7 +120,7 @@ describe('a localOnly load', () => {
    * for that.
    */
   it('puts the flags back even when setting them is what fails', async () => {
-    const cacheDir = tempDir('sf-env-cache-');
+    const cacheDir = tempDir('ccfind-env-cache-');
     const previous = fake.env['localModelPath'];
     let thrown = false;
     Object.defineProperty(fake.env, 'localModelPath', {
@@ -150,7 +150,7 @@ describe('a localOnly load', () => {
   });
 
   it('still refuses to load anything when CCFIND_NO_MODEL is set', async () => {
-    await expect(createDefaultEmbedder({ cacheDir: tempDir('sf-env-cache-') })).rejects.toThrow(/CCFIND_NO_MODEL/);
+    await expect(createDefaultEmbedder({ cacheDir: tempDir('ccfind-env-cache-') })).rejects.toThrow(/CCFIND_NO_MODEL/);
     expect(fake.__calls).toHaveLength(0);
   });
 });

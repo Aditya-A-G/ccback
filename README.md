@@ -16,9 +16,24 @@ npm install -g ccfind          # gives you `ccfind` and the short `ccf`
 
 That includes the libraries that run the embedding model on your machine, so the install is about 140 MB to download and about 520 MB on disk. They ship binaries for macOS, Linux and Windows in one package; only yours is ever loaded.
 
-To use keyword search alone, run `ccfind --keyword-only`, or set `CCFIND_KEYWORD_ONLY=1` in your shell to make that permanent: no model is downloaded and nothing is embedded. (npm cannot leave the libraries out of a global install: `npm install -g` ignores `--omit=optional`. In a project-local install, `npm install ccfind --omit=optional` does skip them and brings the install down to about 40 MB.)
+To use keyword search alone, run `ccfind --keyword-only`, or set `CCFIND_KEYWORD_ONLY=1` in your shell to make that permanent: no model is downloaded and nothing is embedded. A global install still carries the libraries, because `npm install -g` ignores `--omit=optional`; in a project-local install, `npm install ccfind --omit=optional` does skip them and brings the install down to about 40 MB.
 
-Want an even shorter command? `ccfind --alias` offers to add `alias sf=ccfind` to your shell startup file. Before it offers, it checks that `sf` is not a program on your `PATH`, not a shell builtin or reserved word (bash, zsh and fish alike), and not already an alias, abbreviation or function in your startup file — or, on fish, a file in your fish functions directory (`~/.config/fish/functions`, or under `XDG_CONFIG_HOME` when you have set one). The startup file is the one your shell really reads: `ZDOTDIR` and `XDG_CONFIG_HOME` are honoured, and if either points outside your home directory it says so and prints the line instead of writing anywhere. It shows you the exact block it would append — a blank line, a comment saying ccfind added it, and the alias — and, unless you pass `--yes`, asks before adding it. Nothing else in the file is touched, and it never follows a symlink out of your home directory. If it cannot write the file it prints the line for you to paste. Piped or scripted, it prints the line and changes nothing unless you pass `--yes`, which answers the question and skips it while still running every check. Pick your own name with `ccfind --alias qq`. Under a shell it does not know, and on Windows, it prints the line to add instead of guessing at a file.
+### A shorter command
+
+Want something shorter to type? `ccfind --alias` offers to add `alias sf=ccfind` to your shell startup file, on bash, zsh and fish. Pick your own name with `ccfind --alias qq`.
+
+Before it offers, it makes sure the name is free:
+
+- not a program on your `PATH`, not a shell builtin or reserved word, and not already an alias, abbreviation or function in your startup file;
+- on fish, not a file in your fish functions directory either (`~/.config/fish/functions`, or under `XDG_CONFIG_HOME` when you have set one).
+
+It then shows you the exact block it would append — a blank line, a comment saying ccfind added it, and the alias — and asks before adding it, unless you pass `--yes`. What it will and will not do:
+
+- it writes to the startup file your shell really reads, so `ZDOTDIR` and `XDG_CONFIG_HOME` are honoured; if either points outside your home directory it says so and prints the line instead of writing anywhere;
+- nothing else in the file is touched, and it never follows a symlink out of your home directory;
+- if it cannot write the file, it prints the line for you to paste;
+- piped or scripted, it prints the line and changes nothing, unless you pass `--yes`, which answers the question and skips it while still running every check;
+- under a shell it does not know, and on Windows, it prints the line to add instead of guessing at a file.
 
 ## Use it
 
@@ -51,7 +66,7 @@ Smart search needs no key: it sets itself up on its own, in the background.
 
 Two things run at once: keyword search (SQLite FTS5, BM25, stemming) and semantic search, which matches by meaning — "video editing workflow" finds the session where you said "cut the clips and add captions". Results are merged, so you get both.
 
-Smart search sets itself up on its own. The first time you open the picker or the browser UI, ccfind downloads a small embedding model (`all-MiniLM-L6-v2`, about 23 MB) and starts indexing meaning in the background. Keyword results are there from the first keystroke and quietly get better as it finishes; on a large history the first pass takes a few minutes. After that, a day of new conversation is a top-up of a few seconds, because unchanged text keeps the embeddings it already had.
+The first time you open the picker or the browser UI, ccfind downloads a small embedding model (`all-MiniLM-L6-v2`, about 23 MB) and starts indexing meaning in the background. Keyword results are there from the first keystroke and quietly get better as it finishes; on a large history the first pass takes a few minutes. After that, a day of new conversation is a top-up of a few seconds, because unchanged text keeps the embeddings it already had.
 
 With `--keyword-only` or `CCFIND_KEYWORD_ONLY=1`, or when the embedding libraries are not installed, none of that happens and nothing nags you about it: keyword search is the whole tool.
 
@@ -77,13 +92,16 @@ this machine already, they answer with keyword results and say so in `modeUsed`.
 `ccfind --reindex` is what sets smart search up from a terminal.
 
 `--port 0` asks the operating system for any free port, and a busy port is
-stepped past rather than refused. `--no-sync` skips the index update, so if the
-folder it would read is not the one the index was built from — a different
-`--projects-dir`, or a default that has moved since — it says on stderr that the
-results come from the recorded folder — stdout stays exactly what a pipeline
-expects. The picker shows the same sentence as its one
-status line until you type, and the browser UI as a quiet line under the
-results. Single-letter flags can be bundled: `-pw` is `-p -w`.
+stepped past rather than refused.
+
+`--no-sync` skips the index update. If the folder it would have read is not the
+one the index was built from — a different `--projects-dir`, or a default that
+has moved since — it says on stderr which folder the results came from, leaving
+stdout exactly what a pipeline expects. The picker shows the same sentence as
+its one status line until you type, and the browser UI as a quiet line under the
+results.
+
+Single-letter flags can be bundled: `-pw` is `-p -w`.
 
 The browser UI has the same search, a folder and date filter, a best-match / most-recent switch, and a transcript reader with one button: copy the resume command.
 
@@ -99,12 +117,23 @@ The web UI binds to `127.0.0.1` only, rejects requests with a foreign `Host` hea
 
 The running server records itself in `~/.ccfind/web.json`, which holds the secret that identifies it. That file is created `0600` on macOS and Linux. Windows has no POSIX file modes: there it lives in `%USERPROFILE%\.ccfind` and is protected by the ACL that folder inherits, which grants you, SYSTEM and local administrators — so on a shared Windows machine an administrator can read it.
 
-## Development
+## Contributing
+
+Issues and pull requests are welcome. You need Node 22 or newer.
 
 ```sh
-npm test            # vitest, no network, never touches your real ~/.claude
+git clone https://github.com/Aditya-A-G/ccfind.git
+cd ccfind
+npm install
+npm test            # builds first, then runs the suite
 npm run typecheck
 npm run build
 ```
 
-See `SPEC.md` for the design.
+The tests need no network, and they never read or write your real `~/.claude`
+or `~/.ccfind`: every run gets its own temporary home, and the suite fails if
+anything under the real one changes.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

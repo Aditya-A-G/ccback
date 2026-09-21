@@ -1,10 +1,10 @@
 /**
  * The picker under keyword-only.
  *
- * `--keyword-only` used to change the search mode and nothing else: the picker
- * still asked where smart search stood, still started the background job on the
- * answer, and so still downloaded a 23 MB model for somebody who had said they
- * did not want one. It also asked for a session's matches without a mode, which
+ * Under `--keyword-only` the picker must never reach the embedder at all. Two
+ * ways it could: asking where smart search stands and starting the background
+ * job on the answer, which downloads a 23 MB model for somebody who said they
+ * did not want one; and asking for a session's matches without a mode, which
  * sends `sessionMatches` down the `auto` path and into the embedder on its own.
  *
  * So the assertion is not "the results are keyword results"; it is that the

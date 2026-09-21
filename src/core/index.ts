@@ -17,7 +17,6 @@ export {
   APP_HOME_ENV,
   APP_NAME,
   canonicalDir,
-  LEGACY_APP_HOME_ENV,
   missingProjectsDirMessage,
   NO_SESSIONS_YET,
   projectsDirExists,

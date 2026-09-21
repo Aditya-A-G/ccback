@@ -2,11 +2,11 @@
  * `--alias` and the two variables that move a shell's configuration.
  *
  * zsh reads `$ZDOTDIR/.zshrc` when `ZDOTDIR` is set and never looks at
- * `~/.zshrc`, so the alias used to be written to a file the shell would not
- * read — and the clash check read that same wrong file, so a name already
- * taken in the real one was reported as free. fish has the same shape of
- * problem with `XDG_CONFIG_HOME`, for `config.fish` and for the `functions/`
- * directory a name can be taken in.
+ * `~/.zshrc`. Miss that and the alias goes into a file the shell will not read,
+ * and the clash check reads that same wrong file, so a name already taken in
+ * the real one is reported as free. fish has the same shape of problem with
+ * `XDG_CONFIG_HOME`, for `config.fish` and for the `functions/` directory a
+ * name can be taken in.
  *
  * A variable pointing outside the home directory is nobody's invitation to
  * write there: that is the print-the-line path, with the reason said out loud.
@@ -26,8 +26,8 @@ interface Harness {
 }
 
 function harness(overrides: Partial<AliasEnv> = {}): Harness {
-  const home = tempDir('sf-alias-cfg-home-');
-  const emptyPath = tempDir('sf-alias-cfg-path-');
+  const home = tempDir('ccfind-alias-cfg-home-');
+  const emptyPath = tempDir('ccfind-alias-cfg-path-');
   const written: string[] = [];
   const env: AliasEnv = {
     home,
@@ -80,7 +80,7 @@ describe('zsh with ZDOTDIR', () => {
   });
 
   it('prints the line, and why, when ZDOTDIR is outside the home directory', async () => {
-    const outside = tempDir('sf-alias-outside-');
+    const outside = tempDir('ccfind-alias-outside-');
     const h = harness({ zdotdir: outside });
 
     const target = detectShell(h.env);
@@ -139,7 +139,7 @@ describe('fish with XDG_CONFIG_HOME', () => {
   });
 
   it('prints the line, and why, when XDG_CONFIG_HOME is outside the home directory', async () => {
-    const outside = tempDir('sf-alias-xdg-outside-');
+    const outside = tempDir('ccfind-alias-xdg-outside-');
     const h = fishEnv({ xdgConfigHome: outside });
 
     expect(await runAlias('sf', h.env)).toBe(0);

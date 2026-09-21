@@ -227,10 +227,10 @@ export async function createDefaultEmbedder(options: CreateEmbedderOptions = {})
 
   transformers.env['cacheDir'] = cacheDir;
 
-  // `env` belongs to the module, not to this call, so a local-only load used to
-  // leave remote loading switched off for every later load in the same process:
-  // the picker's `-p` pass would quietly disable the download the background
-  // job was about to do. Whatever was there is put back before returning, on
+  // `env` belongs to the module, not to this call, so a local-only load would
+  // otherwise leave remote loading switched off for every later load in the
+  // same process: a `-p` pass would quietly disable the download the background
+  // job is about to do. Whatever was there is put back before returning, on
   // the failure path too.
   const previous = {
     allowRemoteModels: transformers.env['allowRemoteModels'],

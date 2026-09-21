@@ -1,9 +1,10 @@
 /**
- * The reader must never lose a character (second review, must-fix 1).
+ * The transcript reader must never lose a character.
  *
- * A fence marker with text on the same line used to swallow that text:
- * "```npm i```" came back as an empty code block. The invariant enforced here
- * is the general one: every non-whitespace character of the input shows up, in
+ * Transcripts are full of code fences written in every shape, and a reader that
+ * quietly drops text is worse than no reader at all — "```npm i```" has to come
+ * back with its command intact. The invariant enforced here is the general one:
+ * every non-whitespace character of the input shows up, in
  * order, in the text of the tokens, apart from the punctuation the renderer
  * deliberately consumes (listed in `ALLOWED_SKIP`, and in the header of
  * markdown.js).
@@ -84,7 +85,7 @@ describe('a fence marker with text on the same line', () => {
     ]);
   });
 
-  it('loses nothing on the samples that used to lose characters', () => {
+  it('loses nothing on fences with text on the marker line', () => {
     for (const sample of [
       '```npm i```',
       '~~~abc~~~',

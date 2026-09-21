@@ -9,7 +9,7 @@ import { cleanupTempDirs, makeFixture, openFixtureDb, tempDir, userMessage, writ
 
 afterAll(cleanupTempDirs);
 
-describe('resume command quoting (criterion 11)', () => {
+describe('resume command quoting', () => {
   it('quotes a plain path', () => {
     expect(buildResumeCommand('/tmp/app', 'abc-123')).toBe("cd '/tmp/app' && claude --resume 'abc-123'");
   });
@@ -217,12 +217,12 @@ describe.runIf(process.platform === 'win32')('spawning a real claude.cmd on Wind
   }
 
   it('runs the shim in the session folder with the id as one argument', async () => {
-    const binDir = tempDir('sf-resume-bin-');
+    const binDir = tempDir('ccfind-resume-bin-');
     // A space is as far as `echo %CD%` can be pushed: cmd.exe expands `%VAR%`
     // before it looks for `&`, so a folder whose *name* contains one cannot be
     // echoed at all. The hostile names are covered by the next test, which
     // never puts the folder on a command line.
-    const workdir = path.join(tempDir('sf-resume-cwd-'), 'my session folder');
+    const workdir = path.join(tempDir('ccfind-resume-cwd-'), 'my session folder');
     fs.mkdirSync(workdir, { recursive: true });
     const outFile = path.join(binDir, 'argv.txt');
     // The shim reports where it ran and what it was given through an
@@ -249,12 +249,12 @@ describe.runIf(process.platform === 'win32')('spawning a real claude.cmd on Wind
   }, 20_000);
 
   it('a hostile folder name is not a command, even through cmd.exe', async () => {
-    const binDir = tempDir('sf-resume-bin2-');
+    const binDir = tempDir('ccfind-resume-bin2-');
     // `& md PWNED` would create a folder if this name ever reached a command
     // line. It is a directory name, so it must only ever be a directory name.
     // (`> | " < : ? *` cannot be tested this way: Windows will not let a
     // directory be called that in the first place.)
-    const parent = tempDir('sf-resume-cwd2-');
+    const parent = tempDir('ccfind-resume-cwd2-');
     for (const name of ['a & md PWNED', 'a ^ b %PATH%', 'x (paren) & md PWNED2']) {
       const workdir = path.join(parent, name);
       fs.mkdirSync(workdir, { recursive: true });

@@ -19,7 +19,7 @@ import {
   syncIndex,
   topUpEmbeddings,
 } from '../src/core/index.js';
-import { APP_HOME_ENV, LEGACY_APP_HOME_ENV, resolveAppHome, shortenHomePath } from '../src/core/paths.js';
+import { APP_HOME_ENV, APP_NAME, resolveAppHome, shortenHomePath } from '../src/core/paths.js';
 import {
   aiTitle,
   appendSession,
@@ -297,19 +297,18 @@ describe('semanticStatus, enableSemantic, topUpEmbeddings', () => {
 });
 
 describe('where the tool keeps its own files', () => {
-  it('prefers CCFIND_HOME, still honours the old variable, and can be overridden', () => {
+  it('reads CCFIND_HOME, lets an explicit path win, and otherwise uses ~/.ccfind', () => {
     const previous = { ...process.env };
     try {
       // `resolveAppHome` resolves what it is given, so the expectation is
-      // spelled the way this platform spells it: `D:\tmp\legacy-home` on
-      // Windows, `/tmp/legacy-home` everywhere else.
+      // spelled the way this platform spells it: `D:\tmp\app-home` on Windows,
+      // `/tmp/app-home` everywhere else.
       const spelled = (p: string): string => path.resolve(p);
-      delete process.env[APP_HOME_ENV];
-      process.env[LEGACY_APP_HOME_ENV] = '/tmp/legacy-home';
-      expect(resolveAppHome()).toBe(spelled('/tmp/legacy-home'));
-      process.env[APP_HOME_ENV] = '/tmp/new-home';
-      expect(resolveAppHome()).toBe(spelled('/tmp/new-home'));
+      process.env[APP_HOME_ENV] = '/tmp/app-home';
+      expect(resolveAppHome()).toBe(spelled('/tmp/app-home'));
       expect(resolveAppHome('/tmp/explicit')).toBe(spelled('/tmp/explicit'));
+      delete process.env[APP_HOME_ENV];
+      expect(path.basename(resolveAppHome())).toBe(`.${APP_NAME}`);
     } finally {
       process.env = previous;
     }

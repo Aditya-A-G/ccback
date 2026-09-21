@@ -24,8 +24,8 @@ interface Harness {
 }
 
 function harness(overrides: Partial<AliasEnv> & { answer?: string } = {}): Harness {
-  const home = tempDir('sf-clash-home-');
-  const emptyPath = tempDir('sf-clash-path-');
+  const home = tempDir('ccfind-clash-home-');
+  const emptyPath = tempDir('ccfind-clash-path-');
   const written: string[] = [];
   const env: AliasEnv = {
     home,
@@ -229,7 +229,7 @@ describe('the file it writes to', () => {
 
   it.skipIf(isWindows)('refuses a symlink pointing outside the home directory', async () => {
     const h = harness();
-    const outside = tempDir('sf-clash-outside-');
+    const outside = tempDir('ccfind-clash-outside-');
     const target = path.join(outside, 'zshrc');
     fs.writeFileSync(target, '# not mine\n');
     fs.symlinkSync(target, rc(h.home));
@@ -248,7 +248,7 @@ describe('the file it writes to', () => {
   });
 
   it('never creates a missing home directory', async () => {
-    const parent = tempDir('sf-clash-nohome-');
+    const parent = tempDir('ccfind-clash-nohome-');
     const home = path.join(parent, 'not-created');
     const h = harness({ home });
     await expect(runAlias('sf', h.env)).rejects.toSatisfy(isUserError);
@@ -343,7 +343,7 @@ describe('a definition the old check could not see', () => {
 });
 
 describe('a name that is taken outside any startup file', () => {
-  const binDir = tempDir('sf-clash-realbin-');
+  const binDir = tempDir('ccfind-clash-realbin-');
   fs.writeFileSync(path.join(binDir, 'ls'), '#!/bin/sh\necho hi\n', { mode: 0o755 });
 
   it('is refused under an unknown shell and on Windows, not printed as advice', async () => {
@@ -398,7 +398,7 @@ describe('a home directory that is not one', () => {
 describe('the write itself', () => {
   it.skipIf(isWindows)('does not follow a symlink that appears after the target was resolved', async () => {
     const h = harness();
-    const outside = tempDir('sf-clash-swap-');
+    const outside = tempDir('ccfind-clash-swap-');
     const stolen = path.join(outside, 'zshrc');
     fs.writeFileSync(stolen, '# not mine\n');
 

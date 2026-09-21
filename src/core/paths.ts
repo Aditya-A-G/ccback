@@ -11,9 +11,6 @@ export const APP_NAME = 'ccfind';
 /** Environment variable that relocates {@link resolveAppHome}. */
 export const APP_HOME_ENV = 'CCFIND_HOME';
 
-/** The name this tool shipped under before, still honoured so older setups keep working. */
-export const LEGACY_APP_HOME_ENV = 'SESSION_FINDER_HOME';
-
 /**
  * Directory that holds the Claude Code transcripts.
  *
@@ -33,16 +30,13 @@ export function resolveProjectsDir(override?: string | undefined): string {
  * Directory this tool owns: index database, model cache and the running-server
  * marker.
  *
- * Overridable with `CCFIND_HOME` (used by every test). The tool's former name
- * is still honoured silently so an existing `SESSION_FINDER_HOME` keeps
- * working; nothing is ever migrated automatically.
+ * An explicit argument wins, then `CCFIND_HOME`, then `~/.ccfind`. A leading
+ * `~` is expanded, so the variable can be set the way a shell writes it.
  */
 export function resolveAppHome(override?: string | undefined): string {
   if (override && override.length > 0) return path.resolve(expandHome(override));
-  for (const key of [APP_HOME_ENV, LEGACY_APP_HOME_ENV]) {
-    const fromEnv = process.env[key];
-    if (fromEnv && fromEnv.length > 0) return path.resolve(expandHome(fromEnv));
-  }
+  const fromEnv = process.env[APP_HOME_ENV];
+  if (fromEnv && fromEnv.length > 0) return path.resolve(expandHome(fromEnv));
   return path.join(os.homedir(), `.${APP_NAME}`);
 }
 

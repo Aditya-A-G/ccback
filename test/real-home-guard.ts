@@ -1,9 +1,9 @@
 /**
  * The last line of defence: no test run may write to the user's real `~/.ccfind`.
  *
- * Two agents damaged a real index by inheriting `CCFIND_HOME` from the shell
- * they were started in, so the suite no longer trusts any of its own callers to
- * get that right. The whole directory is stat-ed before the run and after it,
+ * A `CCFIND_HOME` inherited from the shell the run started in is enough to
+ * point the suite at a real index, so the suite trusts none of its own callers
+ * to get that right. The whole directory is stat-ed before the run and after it,
  * and any difference at all fails the run — after the fact, but loudly, and
  * with the paths that changed.
  */

@@ -1,10 +1,10 @@
 /**
  * What `npm install -g ccfind` actually puts on somebody's disk.
  *
- * The tarball used to carry 84 source maps and declaration maps, every one of
- * them pointing at a `../src` that is not shipped: dead weight, and a
- * debugger's dead end. It must also never carry the test suite, the design
- * document, or anything else that is not the tool.
+ * Source maps and declaration maps point at a `../src` that is not shipped:
+ * dead weight in the download, and a debugger's dead end. The tarball must
+ * carry the tool, its licence and its readme, and nothing else — no sources,
+ * no tests.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -43,14 +43,19 @@ describe('the published tarball', () => {
     expect(files.filter((name) => name.endsWith('.map'))).toEqual([]);
   });
 
-  it.skipIf(isWindows)('ships no sources, no tests and no design document', () => {
+  it.skipIf(isWindows)('ships no sources and no tests', () => {
     expect(files.filter((name) => name.startsWith('src/'))).toEqual([]);
     expect(files.filter((name) => name.startsWith('test/'))).toEqual([]);
-    expect(files.filter((name) => name.toUpperCase().includes('SPEC.MD'))).toEqual([]);
   });
 
-  it.skipIf(isWindows)('ships the licence, the readme, the CLI and the web page', () => {
-    for (const required of ['LICENSE', 'README.md', 'dist/cli.js', 'dist/web/static/index.html']) {
+  it.skipIf(isWindows)('ships the licence, the readme, the changelog, the CLI and the web page', () => {
+    for (const required of [
+      'LICENSE',
+      'README.md',
+      'CHANGELOG.md',
+      'dist/cli.js',
+      'dist/web/static/index.html',
+    ]) {
       expect(files).toContain(required);
     }
   });

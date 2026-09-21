@@ -75,7 +75,7 @@ async function buildIndexedFixture(): Promise<{ db: Db }> {
   return { db };
 }
 
-describe('semantic search with a deterministic fake embedder (criterion 10)', () => {
+describe('semantic search with a deterministic fake embedder', () => {
   it('creates a chunk per message at index time, unembedded', async () => {
     const { db } = await buildIndexedFixture();
     const counts = db

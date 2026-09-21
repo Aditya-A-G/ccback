@@ -155,9 +155,7 @@ describe('the page itself', () => {
   });
 });
 
-/* ------------------------------------------------- adversarial review fixes */
-
-describe('loopback host check on port 80 (should-fix 12)', () => {
+describe('loopback host check on port 80', () => {
   it('accepts the bare loopback names only when the server is on port 80', () => {
     expect(isAllowedHost('127.0.0.1', 80)).toBe(true);
     expect(isAllowedHost('localhost', 80)).toBe(true);
@@ -217,7 +215,7 @@ describe('the markdown reader is still injection-proof (feature 13)', () => {
     expect(readAsset('index.html')).toContain('<script src="/markdown.js" type="module" defer></script>');
   });
 
-  it('shows no match count on a browse card (ux 7)', () => {
+  it('shows no match count on a browse card', () => {
     const app = readAsset('app.js');
     expect(app).toContain('if (state.q && result.matchCount > 0) bits.push(matchCountLabel(result.matchCount));');
     expect(app).toContain("return count === 1 ? '1 message mentions this' : count + ' messages mention this';");
