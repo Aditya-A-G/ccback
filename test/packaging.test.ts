@@ -15,9 +15,18 @@ import { childEnv } from './helpers.js';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+/**
+ * Skipped wholesale on Windows: `npm` there is `npm.cmd`, which `spawnSync`
+ * cannot run without a shell, and the executable-bit check at the end is a
+ * POSIX mode question that has no answer on NTFS. What the tarball contains
+ * does not depend on the platform packing it, so Linux and macOS cover it.
+ */
+const isWindows = process.platform === 'win32';
+
 let files: string[] = [];
 
 beforeAll(() => {
+  if (isWindows) return;
   const result = spawnSync('npm', ['pack', '--dry-run', '--json', '--loglevel=error'], {
     cwd: projectRoot,
     encoding: 'utf8',
@@ -30,28 +39,28 @@ beforeAll(() => {
 }, 120_000);
 
 describe('the published tarball', () => {
-  it('ships no source maps or declaration maps', () => {
+  it.skipIf(isWindows)('ships no source maps or declaration maps', () => {
     expect(files.filter((name) => name.endsWith('.map'))).toEqual([]);
   });
 
-  it('ships no sources, no tests and no design document', () => {
+  it.skipIf(isWindows)('ships no sources, no tests and no design document', () => {
     expect(files.filter((name) => name.startsWith('src/'))).toEqual([]);
     expect(files.filter((name) => name.startsWith('test/'))).toEqual([]);
     expect(files.filter((name) => name.toUpperCase().includes('SPEC.MD'))).toEqual([]);
   });
 
-  it('ships the licence, the readme, the CLI and the web page', () => {
+  it.skipIf(isWindows)('ships the licence, the readme, the CLI and the web page', () => {
     for (const required of ['LICENSE', 'README.md', 'dist/cli.js', 'dist/web/static/index.html']) {
       expect(files).toContain(required);
     }
   });
 
-  it('keeps the type declarations that make the core importable', () => {
+  it.skipIf(isWindows)('keeps the type declarations that make the core importable', () => {
     // `main`, `types` and `exports` all point here on purpose.
     expect(files).toContain('dist/core/index.d.ts');
   });
 
-  it('ships an executable CLI with a node shebang', () => {
+  it.skipIf(isWindows)('ships an executable CLI with a node shebang', () => {
     const cli = path.join(projectRoot, 'dist', 'cli.js');
     expect(fs.readFileSync(cli, 'utf8').split('\n')[0]).toBe('#!/usr/bin/env node');
     // npm links `bin` entries; they have to be runnable as they are shipped.

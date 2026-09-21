@@ -15,8 +15,10 @@ import {
   resolveIndexPath,
   resolveModelCacheDir,
   resolveProjectsDir,
+  sameDirectory,
 } from './paths.js';
 import { buildResumeCommand } from './resume.js';
+import { sanitizeLine } from './sanitize.js';
 import {
   embedMissing as embedChunks,
   type EmbedMissingOptions,
@@ -57,6 +59,33 @@ const PROJECTS_DIR_META = 'projects_dir';
  */
 export function indexedProjectsDir(options: IndexAccessOptions = {}): string | null {
   return getMeta(resolveDb(options), PROJECTS_DIR_META);
+}
+
+/**
+ * `--no-sync` plus a `--projects-dir` other than the one the index was built
+ * from: the index is not going to be brought in line with that folder, so the
+ * results are about the folder it was built from.
+ *
+ * Silently answering with somebody else's sessions is the kind of thing that
+ * gets noticed three commands later, so every front end says the same sentence:
+ * the CLI on stderr, the picker as its one status line, the browser UI as the
+ * quiet line under the results. Returns null when there is nothing to say.
+ */
+export function projectsDirMismatch(
+  projectsDir?: string | undefined,
+  options: IndexAccessOptions = {},
+): string | null {
+  // No `--projects-dir` means the index and the request agree by construction;
+  // asked before the index is opened, so the common case costs nothing.
+  if (projectsDir === undefined || projectsDir === '') return null;
+  const recorded = indexedProjectsDir(options);
+  if (recorded === null) return null;
+  const asked = resolveProjectsDir(projectsDir);
+  if (sameDirectory(recorded, asked)) return null;
+  return (
+    `--no-sync: this index was built from ${sanitizeLine(recorded)}, so these results are from there, ` +
+    `not from ${sanitizeLine(asked)}.`
+  );
 }
 
 export interface EmbedApiOptions extends IndexAccessOptions, EmbedMissingOptions {

@@ -32,7 +32,8 @@
     "dist",
     "!dist/**/*.map",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node scripts/copy-static.mjs",
@@ -56,5 +57,14 @@
     "ink-testing-library": "^4.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.2.4"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aditya-A-G/ccfind.git"
+  },
+  "homepage": "https://github.com/Aditya-A-G/ccfind#readme",
+  "bugs": {
+    "url": "https://github.com/Aditya-A-G/ccfind/issues"
+  },
+  "author": "Aditya Ghadge"
 }

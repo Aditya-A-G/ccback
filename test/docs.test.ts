@@ -152,6 +152,88 @@ describe('the flags', () => {
   });
 });
 
+/** Rows an 80-column terminal spends on `text`, wrapping included. */
+function screenRows(text: string, columns = 80): number {
+  return text
+    .split('\n')
+    .slice(0, -1) // the trailing newline ends the last line; it is not a row
+    .reduce((rows, line) => rows + Math.max(1, Math.ceil(line.length / columns)), 0);
+}
+
+/**
+ * `--help` used to be 30 lines, three of them wider than 80 columns, so the
+ * title and the examples had scrolled off before the reader saw the options.
+ */
+describe('--help', () => {
+  it('fits one 24-line screen at 80 columns', () => {
+    const lines = HELP.split('\n').slice(0, -1);
+    expect(Math.max(...lines.map((line) => line.length))).toBeLessThanOrEqual(80);
+    expect(screenRows(HELP)).toBeLessThanOrEqual(24);
+  });
+
+  it('agrees with the README that --port 0 takes any free port', () => {
+    for (const [name, text] of [
+      ['--help', HELP],
+      ['README', readme],
+    ] as const) {
+      expect(text, name).toContain('--port 0');
+      expect(text, name).toContain('free port');
+    }
+  });
+});
+
+describe('CHANGELOG.md', () => {
+  const changelog = fs.readFileSync(path.join(projectRoot, 'CHANGELOG.md'), 'utf8');
+  const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8')) as {
+    version: string;
+  };
+
+  it('has an entry for the version being published', () => {
+    expect(changelog).toContain(`## ${pkg.version}`);
+  });
+
+  it('describes the release in a handful of plain bullets', () => {
+    const bullets = changelog.split('\n').filter((line) => line.startsWith('- '));
+    expect(bullets.length).toBeGreaterThanOrEqual(3);
+    expect(bullets.length).toBeLessThanOrEqual(6);
+  });
+});
+
+/**
+ * Windows and Linux are only ever exercised in CI, so the workflow that does it
+ * is part of the contract: drop a platform and the suite stops being honest.
+ */
+describe('the CI workflow', () => {
+  const workflow = fs.readFileSync(path.join(projectRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
+
+  it('runs every platform and node version, and does not stop at the first failure', () => {
+    for (const os of ['ubuntu-latest', 'macos-latest', 'windows-latest']) {
+      expect(workflow, os).toContain(os);
+    }
+    expect(workflow).toContain('node: [20, 22]');
+    expect(workflow).toContain('fail-fast: false');
+  });
+
+  it('runs build, typecheck and the tests without downloading a model', () => {
+    for (const step of ['npm ci', 'npm run build', 'npm run typecheck', 'npm test']) {
+      expect(workflow, step).toContain(step);
+    }
+    expect(workflow).toContain('CCFIND_NO_MODEL');
+  });
+
+  it('asks for read access only, uses pinned official actions, and needs no secrets', () => {
+    expect(workflow).toContain('permissions:');
+    expect(workflow).toContain('contents: read');
+    expect(workflow).toContain('actions/checkout@v4');
+    expect(workflow).toContain('actions/setup-node@v4');
+    expect(workflow).not.toContain('secrets.');
+    // Only the two official actions, both pinned to a major version.
+    for (const used of workflow.matchAll(/uses:\s*(\S+)/g)) {
+      expect(['actions/checkout@v4', 'actions/setup-node@v4']).toContain(used[1]);
+    }
+  });
+});
+
 /**
  * The alias paragraph made three promises the code did not keep: that it always
  * asks first (`--yes` does not), that it appends "that one line and nothing

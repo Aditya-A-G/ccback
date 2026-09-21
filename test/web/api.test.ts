@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { SessionResult } from '../../src/core/index.js';
+import { startWebServer } from '../../src/web/index.js';
 import { cleanupTempDirs } from '../helpers.js';
 import {
   LONG_MESSAGE_COUNT,
@@ -161,6 +162,31 @@ describe('GET /api/status', () => {
     expect(body.availableModes).toEqual(['auto', 'keyword']);
     expect(body.canEmbed).toBe(true);
     expect(body.embedding.running).toBe(false);
+  });
+
+  it('reports no notice for a server that was not given one', async () => {
+    expect((await get('/api/status')).json()).toMatchObject({ notice: null });
+  });
+
+  it('reports the startup notice so the page can show it', async () => {
+    // `ccfind -w --no-sync --projects-dir <elsewhere>` hands the sentence to
+    // the server, which is the only way the page can ever learn about it.
+    const notice = '--no-sync: this index was built from /tmp/recorded, not /tmp/asked.';
+    const handle = await startWebServer({
+      port: 0,
+      db: web.db,
+      dbPath: web.fixture.dbPath,
+      appHome: web.fixture.home,
+      projectsDir: web.fixture.projectsDir,
+      autoEmbed: false,
+      announce: false,
+      notice,
+    });
+    try {
+      expect((await request(handle.port, '/api/status')).json()).toMatchObject({ notice });
+    } finally {
+      await handle.close();
+    }
   });
 });
 

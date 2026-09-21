@@ -6,6 +6,7 @@ import {
   coreCloseIndex,
   coreEnableSemantic,
   coreGetMessage,
+  coreProjectsDirMismatch,
   coreRecentSessions,
   coreSearch,
   coreSemanticStatus,
@@ -128,6 +129,11 @@ export interface TuiDeps {
   recentSessions: (request: TuiRecentRequest) => Promise<SessionResult[]> | SessionResult[];
   sync: (request: TuiSyncRequest) => Promise<SyncResult>;
   status: (request: { projectsDir?: string | undefined }) => Promise<IndexStatus> | IndexStatus;
+  /**
+   * The `--no-sync` sentence about a `--projects-dir` the index was not built
+   * from, or null. Advisory only: the picker shows it and carries on.
+   */
+  projectsDirMismatch: (projectsDir?: string | undefined) => string | null;
   /** Every matching message of one session, for ← → stepping. */
   sessionMatches: (request: TuiMatchesRequest) => Promise<MatchSnippet[]> | MatchSnippet[];
   /** The whole message behind a match, for the expanded view. */
@@ -166,6 +172,7 @@ export function defaultDeps(): TuiDeps {
     recentSessions: (request) => coreRecentSessions(request),
     sync: (request) => coreSync(request),
     status: (request) => coreStatus(request),
+    projectsDirMismatch: (projectsDir) => coreProjectsDirMismatch(projectsDir),
     sessionMatches: (request) => coreSessionMatches(request),
     getMessage: (messageId) => coreGetMessage(messageId),
     semanticStatus: () => coreSemanticStatus(),

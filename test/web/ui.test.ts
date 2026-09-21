@@ -52,6 +52,17 @@ describe('the search page', () => {
     expect(rule).not.toContain('border');
     expect(rule).not.toContain('background');
   });
+
+  it('shows the server notice in the same quiet line style, as plain text', () => {
+    // Its own element: the setup line is hidden and rewritten by the embed job,
+    // which would take the notice down with it.
+    expect(html).toContain('<p class="setup-line" id="notice-line" hidden></p>');
+    expect(html.indexOf('id="notice-line"')).toBeGreaterThan(html.indexOf('id="results"'));
+    expect(js).toContain('noticeLine.textContent');
+    expect(js).toContain("statusInfo.notice === 'string'");
+    // textContent, never innerHTML: the sentence carries a filesystem path.
+    expect(js).not.toContain('noticeLine.innerHTML');
+  });
 });
 
 describe('the reader', () => {

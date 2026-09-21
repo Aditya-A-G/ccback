@@ -14,6 +14,7 @@ import {
   closeSharedDatabases,
   enableSemantic,
   getMessage,
+  projectsDirMismatch,
   recentSessions,
   search,
   semanticStatus,
@@ -41,6 +42,7 @@ export const CORE_EXPORTS_USED = [
   'recentSessions',
   'sync',
   'status',
+  'projectsDirMismatch',
   'spawnResume',
   'closeSharedDatabases',
   'sessionMatches',
@@ -64,6 +66,10 @@ export function coreSync(request: TuiSyncRequest): Promise<SyncResult> {
 
 export function coreStatus(request: { projectsDir?: string | undefined }): IndexStatus | Promise<IndexStatus> {
   return status(request);
+}
+
+export function coreProjectsDirMismatch(projectsDir?: string | undefined): string | null {
+  return projectsDirMismatch(projectsDir);
 }
 
 export function coreSpawnResume(request: { cwd: string; sessionId: string }): Promise<number> {

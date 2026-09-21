@@ -82,8 +82,9 @@ this machine already, they answer with keyword results and say so in `modeUsed`.
 stepped past rather than refused. `--no-sync` skips the index update, so if you
 also pass a `--projects-dir` other than the one the index was built from, it
 says on stderr that the results come from the recorded folder — stdout stays
-exactly what a pipeline expects. Single-letter flags can be bundled: `-pw` is
-`-p -w`.
+exactly what a pipeline expects. The picker shows the same sentence as its one
+status line until you type, and the browser UI as a quiet line under the
+results. Single-letter flags can be bundled: `-pw` is `-p -w`.
 
 The browser UI has the same search, a folder and date filter, a best-match / most-recent switch, and a transcript reader with one button: copy the resume command.
 

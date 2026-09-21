@@ -239,6 +239,9 @@ export function startTui(options: HarnessOptions = {}): Harness {
     recentSessions: () => [],
     sync: async () => makeSyncResult(),
     status: () => makeStatus(),
+    // Nothing to warn about by default, and never the real index: see
+    // picker-notice.test.ts for the `--no-sync` mismatch line itself.
+    projectsDirMismatch: () => null,
     sessionMatches: () => [],
     getMessage: () => null,
     // A keyword-only install by default: the picker must then say nothing at

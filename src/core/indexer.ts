@@ -6,7 +6,7 @@ import { getMeta, rebuildDatabase, setMeta } from './db.js';
 import { UserError } from './errors.js';
 import { chunkHash } from './hash.js';
 import { parseSessionFile, sessionIdFromPath } from './parser.js';
-import { missingProjectsDirMessage, projectsDirExists } from './paths.js';
+import { canonicalDir, missingProjectsDirMessage, projectsDirExists, sameDirectory } from './paths.js';
 import { chunkText, invalidateVectorCache } from './semantic.js';
 import { isValidSessionId } from './session-id.js';
 
@@ -148,34 +148,6 @@ function assertSameProjectsDir(db: Db, projectsDir: string): void {
     );
   }
   if (indexedRoot === null) setMeta(db, PROJECTS_DIR_META, root);
-}
-
-/** Symlinks resolved where possible, so `/tmp/x` and `/private/tmp/x` compare equal. */
-function canonicalDir(dir: string): string {
-  const resolved = path.resolve(dir);
-  try {
-    return fs.realpathSync.native(resolved);
-  } catch {
-    return resolved;
-  }
-}
-
-/**
- * Two spellings of one folder are the same folder: a symlinked `~/.claude`, or
- * different letter case on a case-insensitive disk. Identity is decided by
- * device and inode; text comparison is only the fallback when one side is gone.
- */
-function sameDirectory(a: string, b: string): boolean {
-  const left = canonicalDir(a);
-  const right = canonicalDir(b);
-  if (left === right) return true;
-  try {
-    const sa = fs.statSync(left);
-    const sb = fs.statSync(right);
-    return sa.ino === sb.ino && sa.dev === sb.dev && sa.ino !== 0;
-  } catch {
-    return false;
-  }
 }
 
 /**

@@ -57,6 +57,10 @@
       <section class="results" id="results" aria-label="Results"></section>
       <!-- One quiet line, under the results, about smart search building itself. -->
       <p class="setup-line" id="setup-line" hidden></p>
+      <!-- The same quiet line style, for the one advisory sentence the server
+           sets at startup (`--no-sync` against a different --projects-dir).
+           Separate from #setup-line so the embed job cannot hide it. -->
+      <p class="setup-line" id="notice-line" hidden></p>
       <p class="hint" id="search-hint" hidden>Press <kbd>/</kbd> to search, <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>↵</kbd> to open.</p>
     </main>
 

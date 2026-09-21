@@ -227,7 +227,9 @@ describe('a missing transcripts directory (ux 6)', () => {
 });
 
 describe('files that could not be read (should-fix 9)', () => {
-  const rootOnly = process.getuid?.() === 0;
+  // root can read a 0o000 file, and chmod on Windows only toggles the
+  // read-only bit — neither can make a file genuinely unreadable.
+  const rootOnly = process.getuid?.() === 0 || process.platform === 'win32';
 
   it.skipIf(rootOnly)('are reported on stderr and retried, not silently dropped', () => {
     const projects = tempDir('sf-unreadable-projects-');

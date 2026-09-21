@@ -16,6 +16,12 @@ export interface ServerContext {
   /** State of the background semantic-indexing job, per server. */
   job: EmbedJob;
   /**
+   * One advisory sentence to show under the results, set once at startup: the
+   * `--no-sync` + mismatched `--projects-dir` warning. Reported by
+   * `/api/status` as `notice`, already sanitised by the core.
+   */
+  notice?: string | undefined;
+  /**
    * The secret from `web.json`. `/api/status` proves knowledge of it, hashed
    * with a caller's nonce, so another local process cannot pass itself off as
    * this one. Undefined for a server that did not announce itself.

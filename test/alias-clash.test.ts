@@ -12,6 +12,9 @@ import { appendAlias, type AliasEnv, definedInFile, resolveRcTarget, runAlias, S
 import { isUserError } from '../src/core/errors.js';
 import { cleanupTempDirs, tempDir } from './helpers.js';
 
+/** Windows cannot set these cases up; see each guarded test for why. */
+const isWindows = process.platform === 'win32';
+
 afterAll(cleanupTempDirs);
 
 interface Harness {
@@ -210,7 +213,9 @@ describe('the file it writes to', () => {
     expect(after.split('\n')[0]).toBe('export A=1');
   });
 
-  it('follows a symlink that stays inside the home directory', async () => {
+  // Windows needs Developer Mode or elevation to create a symlink at all, so
+  // there is no way to set this case up there.
+  it.skipIf(isWindows)('follows a symlink that stays inside the home directory', async () => {
     const h = harness();
     const real = path.join(h.home, 'dotfiles', 'zshrc');
     fs.mkdirSync(path.dirname(real), { recursive: true });
@@ -222,7 +227,7 @@ describe('the file it writes to', () => {
     expect(fs.lstatSync(rc(h.home)).isSymbolicLink()).toBe(true);
   });
 
-  it('refuses a symlink pointing outside the home directory', async () => {
+  it.skipIf(isWindows)('refuses a symlink pointing outside the home directory', async () => {
     const h = harness();
     const outside = tempDir('sf-clash-outside-');
     const target = path.join(outside, 'zshrc');
@@ -233,7 +238,7 @@ describe('the file it writes to', () => {
     expect(fs.readFileSync(target, 'utf8')).toBe('# not mine\n');
   });
 
-  it('refuses a dangling symlink instead of creating the file through it', async () => {
+  it.skipIf(isWindows)('refuses a dangling symlink instead of creating the file through it', async () => {
     const h = harness();
     const missing = path.join(h.home, 'gone', 'zshrc');
     fs.symlinkSync(missing, rc(h.home));
@@ -250,7 +255,9 @@ describe('the file it writes to', () => {
     expect(fs.existsSync(home)).toBe(false);
   });
 
-  it('turns a read-only startup file into one line naming the exact fix', async () => {
+  // chmod is a no-op for the write bit on Windows in the way this needs: a
+  // 0o444 file is still writable through the ACL Node runs under.
+  it.skipIf(isWindows)('turns a read-only startup file into one line naming the exact fix', async () => {
     const h = harness();
     fs.writeFileSync(rc(h.home), '# mine\n');
     fs.chmodSync(rc(h.home), 0o444);
@@ -389,7 +396,7 @@ describe('a home directory that is not one', () => {
 });
 
 describe('the write itself', () => {
-  it('does not follow a symlink that appears after the target was resolved', async () => {
+  it.skipIf(isWindows)('does not follow a symlink that appears after the target was resolved', async () => {
     const h = harness();
     const outside = tempDir('sf-clash-swap-');
     const stolen = path.join(outside, 'zshrc');

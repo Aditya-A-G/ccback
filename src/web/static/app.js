@@ -201,6 +201,7 @@ function initSearch() {
   const statusLine = el('search-status');
   const hint = el('search-hint');
   const setupLine = el('setup-line');
+  const noticeLine = el('notice-line');
   const filters = el('filters');
   const filtersToggle = el('filters-toggle');
   const folderSelect = el('f-folder');
@@ -387,10 +388,23 @@ function initSearch() {
     return true;
   }
 
+  /**
+   * The server's one advisory sentence, in the same quiet line style as the
+   * smart-search setup line. Set once at startup and never changed, so it
+   * survives every embed-job state the setup line goes through. Plain text
+   * only: `textContent` never interprets markup.
+   */
+  function renderNoticeLine() {
+    const text = statusInfo && typeof statusInfo.notice === 'string' ? statusInfo.notice : '';
+    noticeLine.textContent = text;
+    noticeLine.hidden = text === '';
+  }
+
   async function loadStatus() {
     try {
       statusInfo = await api('/api/status');
       syncControls();
+      renderNoticeLine();
       const building = renderSetupLine();
       // The setup sentence only arrives with the status; apply it to an
       // already-rendered empty list.

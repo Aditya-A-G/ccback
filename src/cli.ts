@@ -11,16 +11,15 @@ import {
   closeSharedDatabases,
   DEFAULT_MODEL_ID,
   enableSemantic,
-  indexedProjectsDir,
   INSTALL_HINT,
   isModelReady,
   isTransformersAvailable,
   isUserError,
   matchCountLabel,
   NO_SESSIONS_YET,
+  projectsDirMismatch,
   recentSessions,
   resolveModelCacheDir,
-  resolveProjectsDir,
   sanitizeLine,
   search,
   semanticStatus,
@@ -66,34 +65,33 @@ export interface WebOptions extends CommonOptions {
 /** Default port for the browser UI. */
 export const DEFAULT_PORT = 4777;
 
+/**
+ * One screenful: 24 rows at 80 columns, so `ccfind --help` in a default
+ * terminal shows the whole thing without scrolling back. `docs.test.ts`
+ * measures it, and checks it agrees with the README about `--port 0`.
+ */
 export const HELP = `${APP_NAME} — find any Claude Code session by what was said in it
 
-  ${APP_NAME} recording videos        search, then Enter to resume the session
-  ${APP_NAME} -w recording videos     the same search, in your browser
-  ${APP_NAME} -p invoices --json      plain results, for scripts and pipes
+  ${APP_NAME} recording videos     search, then Enter to resume the session
+  ${APP_NAME} -w recording videos  the same search, in your browser
+  ${APP_NAME} -p invoices --json   plain results, for scripts and pipes
 
 Usage
-  ${APP_NAME} [words...]     words are always the search; a word that is not a
-                             known flag stays a word, and everything after --
-                             is search text
+  Any word that is not a known flag is search text, as is everything after --.
 
 Options
-  -w, --web              open the browser UI (reuses one that is already running)
-  -p, --print            plain results instead of the picker (automatic when piped)
-      --json             machine-readable results
-      --sort recent      order by last activity instead of best match
-      --stats            what the index holds, and where
-      --reindex [--full] update the index now; --full rebuilds it from scratch
-      --keyword-only     skip smart search for this run
-      --alias [name]     offer to add a short command (default ${DEFAULT_ALIAS}) to your shell
-      --yes              with --alias: skip the question, still run every check
-      --limit N          how many results (default 10)
-      --cwd <path>       only sessions in this folder or under it
-      --since <date> --until <date>    ISO date or datetime
-      --role user|assistant
-      --projects-dir <path>   default $CLAUDE_CONFIG_DIR/projects or ~/.claude/projects
-      --port N  --no-open     browser UI: port (default ${DEFAULT_PORT}), and don't open a tab
-      --no-sync          skip the incremental index update
+  -w, --web            open the browser UI (reuses one already running)
+  -p, --print          plain results instead of the picker (auto when piped)
+      --json           machine-readable results
+      --sort recent    order by last activity instead of best match
+      --stats          what the index holds, and where
+      --reindex [--full]      update the index; --full rebuilds it from scratch
+      --keyword-only          skip smart search for this run
+      --alias [name] [--yes]  add a short command (default ${DEFAULT_ALIAS}) to your shell
+      --limit N  --cwd <path>  --role user|assistant  --since/--until <date>
+      --projects-dir <path>   default $CLAUDE_CONFIG_DIR/projects
+      --port N  --no-open     port ${DEFAULT_PORT} (--port 0: any free port), no tab
+      --no-sync               skip the incremental index update
   -h, --help    -v, --version
 `;
 
@@ -492,57 +490,11 @@ async function runInteractive(query: string, common: CommonOptions): Promise<num
   return code;
 }
 
-/**
- * `--no-sync --projects-dir <somewhere else>`: the index is not going to be
- * brought in line with that folder, so the results are about the folder it was
- * built from. Silently answering with somebody else's sessions is the kind of
- * thing that gets noticed three commands later, so it is one line on stderr —
- * stdout stays exactly what a pipeline expects.
- */
-function warnProjectsDirMismatch(common: CommonOptions): void {
-  if (common.projectsDir === undefined) return;
-  const recorded = indexedProjectsDir();
-  if (recorded === null) return;
-  const asked = resolveProjectsDir(common.projectsDir);
-  if (sameFolder(recorded, asked)) return;
-  process.stderr.write(
-    `--no-sync: this index was built from ${sanitizeLine(recorded)}, so these results are from there, ` +
-      `not from ${sanitizeLine(asked)}.\n`,
-  );
-}
-
-/**
- * Two spellings of one folder are one folder: a symlinked `~/.claude`, or a
- * different letter case on a case-insensitive disk.
- *
- * The indexer answers the same question for its own refusal, but does not
- * export it, so this is the same rule written out: canonical real paths first,
- * then device and inode.
- */
-function sameFolder(a: string, b: string): boolean {
-  const canonical = (p: string): string => {
-    const resolved = path.resolve(p);
-    try {
-      return fs.realpathSync.native(resolved);
-    } catch {
-      return resolved;
-    }
-  };
-  const left = canonical(a);
-  const right = canonical(b);
-  if (left === right) return true;
-  try {
-    const sa = fs.statSync(left);
-    const sb = fs.statSync(right);
-    return sa.ino === sb.ino && sa.dev === sb.dev && sa.ino !== 0;
-  } catch {
-    return false;
-  }
-}
-
 async function maybeSync(common: CommonOptions): Promise<void> {
   if (common.noSync) {
-    warnProjectsDirMismatch(common);
+    // One line on stderr — stdout stays exactly what a pipeline expects.
+    const mismatch = projectsDirMismatch(common.projectsDir);
+    if (mismatch !== null) process.stderr.write(`${mismatch}\n`);
     return;
   }
   const result = await sync({ projectsDir: common.projectsDir });

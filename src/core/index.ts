@@ -16,6 +16,7 @@
 export {
   APP_HOME_ENV,
   APP_NAME,
+  canonicalDir,
   LEGACY_APP_HOME_ENV,
   missingProjectsDirMessage,
   NO_SESSIONS_YET,
@@ -25,6 +26,7 @@ export {
   resolveModelCacheDir,
   resolveProjectsDir,
   resolveWebInstancePath,
+  sameDirectory,
   shortenHomePath,
 } from './paths.js';
 
@@ -142,7 +144,15 @@ export type {
   SessionTranscript,
   SyncApiOptions,
 } from './api.js';
-export { embedMissing, getSession, indexedProjectsDir, listFolders, status, sync } from './api.js';
+export {
+  embedMissing,
+  getSession,
+  indexedProjectsDir,
+  listFolders,
+  projectsDirMismatch,
+  status,
+  sync,
+} from './api.js';
 
 export type {
   IndexedMessage,

@@ -234,6 +234,18 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      // `--no-sync` with a `--projects-dir` the index was not built from: the
+      // picker says where the results really come from, in the same transient
+      // line as everything else, so the first keystroke clears it. Advisory
+      // only — a picker that refused to open over this would be worse.
+      if (options.noSync) {
+        try {
+          const mismatch = deps.projectsDirMismatch(options.projectsDir);
+          if (mismatch !== null && !cancelled) setNotice(oneLine(mismatch));
+        } catch {
+          /* the index may be unreadable; the lines below say so properly */
+        }
+      }
       try {
         indexStatus.current = await deps.status({ projectsDir: options.projectsDir });
         if (!cancelled) refreshEmptyHint(indexStatus.current);

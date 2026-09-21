@@ -13,6 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { splitArgv, withAliasDefault } from '../src/cli.js';
+import { canonicalDir } from '../src/core/index.js';
 import { assistantMessage, childEnv, cleanupTempDirs, makeFixture, userMessage, writeSession } from './helpers.js';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -195,5 +196,61 @@ describe('--web', () => {
     });
 
     expect(code).toBe(130);
+  }, 30_000);
+
+  it('says on stderr when --no-sync points it at another transcripts folder', async () => {
+    const home = path.join(fixture.root, 'web-mismatch-home');
+    // Build an index for the fixture folder, so there is a recorded folder to
+    // disagree with.
+    const seeded = spawnSync(process.execPath, [cliPath, '--projects-dir', fixture.projectsDir, '--reindex'], {
+      encoding: 'utf8',
+      env: childEnv({ CCFIND_HOME: home }),
+    });
+    expect(seeded.status).toBe(0);
+
+    const elsewhere = makeFixture();
+    writeSession(elsewhere.projectsDir, '-tmp-elsewhere', 'elsewhere-session', [
+      userMessage('a session that lives somewhere else entirely', { cwd: '/tmp/elsewhere' }),
+    ]);
+
+    const child = spawn(
+      process.execPath,
+      [
+        cliPath,
+        '--web',
+        '--no-sync',
+        '--no-open',
+        '--port',
+        '0',
+        '--projects-dir',
+        elsewhere.projectsDir,
+      ],
+      { env: childEnv({ CCFIND_HOME: home }) },
+    );
+
+    const stderr = await new Promise<string>((resolve, reject) => {
+      let err = '';
+      const timer = setTimeout(() => {
+        child.kill('SIGKILL');
+        reject(new Error(`no warning appeared: ${err}`));
+      }, 20_000);
+      child.stderr.setEncoding('utf8');
+      child.stderr.on('data', (chunk: string) => {
+        err += chunk;
+        if (err.includes('--no-sync:')) {
+          clearTimeout(timer);
+          child.kill('SIGKILL');
+          resolve(err);
+        }
+      });
+      child.on('error', reject);
+    });
+    await new Promise<void>((resolve) => child.on('exit', () => resolve()));
+
+    // The index records the canonical spelling of the folder it was built from.
+    expect(stderr).toContain(canonicalDir(fixture.projectsDir));
+    expect(stderr).toContain(path.resolve(elsewhere.projectsDir));
+    // Once, not on every request the page makes.
+    expect(stderr.split('--no-sync:')).toHaveLength(2);
   }, 30_000);
 });

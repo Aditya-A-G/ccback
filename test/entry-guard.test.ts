@@ -12,6 +12,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { childEnv, cleanupTempDirs, makeFixture } from './helpers.js';
 
+/** Windows cannot set these cases up; see each guarded test for why. */
+const isWindows = process.platform === 'win32';
+
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cliPath = path.join(projectRoot, 'dist', 'cli.js');
 
@@ -47,7 +50,9 @@ describe('entry point guard', () => {
     expect(fs.readdirSync(home)).toEqual([]);
   });
 
-  it('still runs when invoked through a bin symlink, as npm installs it', () => {
+  // npm uses a .cmd shim rather than a symlink on Windows, and creating one
+  // needs Developer Mode or elevation there anyway.
+  it.skipIf(isWindows)('still runs when invoked through a bin symlink, as npm installs it', () => {
     const binDir = path.join(fixture.root, 'bin');
     fs.mkdirSync(binDir, { recursive: true });
     const link = path.join(binDir, 'ccfind');

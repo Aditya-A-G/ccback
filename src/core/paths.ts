@@ -84,6 +84,38 @@ export function resolveWebInstancePath(appHome?: string | undefined): string {
   return path.join(resolveAppHome(appHome), 'web.json');
 }
 
+/** Symlinks resolved where possible, so `/tmp/x` and `/private/tmp/x` compare equal. */
+export function canonicalDir(dir: string): string {
+  const resolved = path.resolve(dir);
+  try {
+    return fs.realpathSync.native(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
+/**
+ * Two spellings of one folder are the same folder: a symlinked `~/.claude`, or
+ * different letter case on a case-insensitive disk. Identity is decided by
+ * device and inode; text comparison is only the fallback when one side is gone.
+ *
+ * The one place this question is answered: the indexer refuses to sync an index
+ * against a different folder with it, and `projectsDirMismatch` decides whether
+ * a front end has anything to warn about with it.
+ */
+export function sameDirectory(a: string, b: string): boolean {
+  const left = canonicalDir(a);
+  const right = canonicalDir(b);
+  if (left === right) return true;
+  try {
+    const sa = fs.statSync(left);
+    const sb = fs.statSync(right);
+    return sa.ino === sb.ino && sa.dev === sb.dev && sa.ino !== 0;
+  } catch {
+    return false;
+  }
+}
+
 /** `/Users/me/x` -> `~/x`, on every platform. Home prefixes are noise in a list. */
 export function shortenHomePath(p: string, home: string = os.homedir()): string {
   if (p === '' || home === '') return p;

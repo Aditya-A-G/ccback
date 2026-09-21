@@ -181,6 +181,8 @@ export function statusRoute(ctx: ServerContext, params?: URLSearchParams): JsonR
       canEmbed: semantic.runtimeInstalled,
       installHint: INSTALL_HINT,
       noEmbeddingsHint: NO_EMBEDDINGS_HINT,
+      // One quiet line for the page, or null. Nothing depends on it working.
+      notice: ctx.notice ?? null,
       embedding: ctx.job.snapshot(),
     },
   };

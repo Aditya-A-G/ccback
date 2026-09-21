@@ -20,6 +20,7 @@ import {
   missingProjectsDirMessage,
   NO_SESSIONS_YET,
   projectsDirExists,
+  projectsDirMismatch,
   recentSessions,
   resolveIndexPath,
   resolveProjectsDir,
@@ -85,6 +86,11 @@ export interface StartWebServerOptions {
    * while the user is already searching. Tests turn it off.
    */
   autoEmbed?: boolean | undefined;
+  /**
+   * One advisory sentence for the page, reported by `/api/status` as `notice`.
+   * Used for the `--no-sync` + mismatched `--projects-dir` warning.
+   */
+  notice?: string | undefined;
 }
 
 /** How many further ports to try when the requested one is busy. */
@@ -101,6 +107,7 @@ export async function startWebServer(opts: StartWebServerOptions): Promise<WebSe
     dbPath,
     embedder: opts.embedder,
     job: new EmbedJob(),
+    notice: opts.notice,
   };
 
   const server = http.createServer(createRequestListener(ctx));
@@ -196,9 +203,16 @@ export async function runWeb(opts: WebOptions): Promise<number> {
     }
   }
 
+  // `--no-sync` with a `--projects-dir` the index was not built from. Said once
+  // on stderr at startup, and carried to the page through `/api/status` so the
+  // tab that stays open all afternoon still knows where its results came from.
+  const notice = opts.noSync ? projectsDirMismatch(opts.projectsDir) : null;
+  if (notice !== null) process.stderr.write(`${notice}\n`);
+
   const handle = await startWebServer({
     port: opts.port,
     projectsDir,
+    ...(notice === null ? {} : { notice }),
   });
 
   const sessions = recentSessions({ limit: 1 }).length;

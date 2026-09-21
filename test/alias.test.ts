@@ -15,6 +15,9 @@ import { type AliasEnv, runAlias } from '../src/core/alias.js';
 import { isUserError } from '../src/core/errors.js';
 import { childEnv, cleanupTempDirs, tempDir } from './helpers.js';
 
+/** Windows cannot set these cases up; see each guarded test for why. */
+const isWindows = process.platform === 'win32';
+
 afterAll(cleanupTempDirs);
 
 interface Harness {
@@ -206,7 +209,8 @@ describe('consent', () => {
 });
 
 describe('the file it appends to', () => {
-  it('follows a symlinked rc file to its target instead of replacing the link', async () => {
+  // Creating a symlink on Windows needs Developer Mode or elevation.
+  it.skipIf(isWindows)('follows a symlinked rc file to its target instead of replacing the link', async () => {
     const h = harness({ assumeYes: true });
     // A dotfiles repo inside the home directory, which is where people keep one.
     // A link leading out of the home directory is refused; see alias-clash.test.ts.

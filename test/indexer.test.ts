@@ -181,7 +181,9 @@ describe('incremental sync (criterion 6)', () => {
 /* ------------------------------------------------- adversarial review fixes */
 
 describe('a file whose parse throws is retried, not written off (should-fix 9)', () => {
-  const rootOnly = process.getuid?.() === 0;
+  // root can read a 0o000 file, and chmod on Windows only toggles the
+  // read-only bit — neither can make a file genuinely unreadable.
+  const rootOnly = process.getuid?.() === 0 || process.platform === 'win32';
 
   it.skipIf(rootOnly)('leaves an unreadable file unrecorded and counts it', async () => {
     const fixture = makeFixture();
@@ -305,7 +307,9 @@ describe('the same session id in two folders (should-fix 11)', () => {
 /* ------------------------------------ second review, must-fix 3: ownership */
 
 describe('a newer file that yields nothing must not hide the older one', () => {
-  const rootOnly = process.getuid?.() === 0;
+  // root can read a 0o000 file, and chmod on Windows only toggles the
+  // read-only bit — neither can make a file genuinely unreadable.
+  const rootOnly = process.getuid?.() === 0 || process.platform === 'win32';
 
   /** Two files with the same session id; the newer one is handed to `spoil`. */
   const twins = (

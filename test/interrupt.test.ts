@@ -167,7 +167,13 @@ describe('embedding survives the interrupt', () => {
   });
 });
 
-describe('a real SIGINT', () => {
+/**
+ * Windows has no SIGINT to deliver: `child.kill('SIGINT')` there is
+ * TerminateProcess, so the child's handler never runs and the exit code is
+ * never 130. The signal path is real behaviour, so it is skipped rather than
+ * rewritten into something that passes without testing anything.
+ */
+describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
   /** Runs a tiny module that uses withInterrupt, so a real signal is delivered. */
   function runHarness(source: string): Promise<{ code: number; ms: number; child: ReturnType<typeof spawn> }> {
     const child = spawn(process.execPath, ['--input-type=module', '-e', source], {
