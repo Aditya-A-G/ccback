@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2023"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "src",
+    "outDir": "dist",
+    "strict": true,
+    // `.d.ts` files stay: `main`, `types` and `exports` make the core an
+    // importable library on purpose. The *maps* go: they point at `../src`,
+    // which the tarball does not ship, so every one of them is a dead link.
+    "declaration": true,
+    "declarationMap": false,
+    "sourceMap": false,
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src"
+  ]
+}

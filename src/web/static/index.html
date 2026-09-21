@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>ccfind</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/markdown.js" type="module" defer></script>
+    <script src="/app.js" type="module" defer></script>
+  </head>
+  <body>
+    <main class="view" id="view-search" hidden>
+      <div class="hero">
+        <h1 class="headline" id="headline">Find the session you are thinking of</h1>
+        <div class="searchbar">
+          <input
+            id="q"
+            class="search-input"
+            type="search"
+            placeholder="What did you talk about?"
+            aria-label="Search sessions"
+            spellcheck="false"
+            autocomplete="off"
+            autofocus
+          />
+        </div>
+        <div class="controls">
+          <div class="sorts" id="sorts" role="group" aria-label="Sort results">
+            <button type="button" class="sort" id="sort-relevance" data-sort="relevance">Best match</button>
+            <button type="button" class="sort" id="sort-recent" data-sort="recent">Most recent</button>
+          </div>
+          <button type="button" class="ghost" id="filters-toggle" aria-expanded="false" aria-controls="filters">
+            Filters
+          </button>
+        </div>
+        <section class="filters" id="filters" aria-label="Filters" hidden>
+          <label class="field">
+            <span class="field-label">Folder</span>
+            <select id="f-folder" class="control mono">
+              <option value="">All folders</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">From</span>
+            <input type="date" id="f-since" class="control" />
+          </label>
+          <label class="field">
+            <span class="field-label">To</span>
+            <input type="date" id="f-until" class="control" />
+          </label>
+          <button type="button" class="ghost" id="f-clear">Clear</button>
+        </section>
+      </div>
+      <p class="status-line" id="search-status" hidden></p>
+      <section class="results" id="results" aria-label="Results"></section>
+      <!-- One quiet line, under the results, about smart search building itself. -->
+      <p class="setup-line" id="setup-line" hidden></p>
+      <p class="hint" id="search-hint" hidden>Press <kbd>/</kbd> to search, <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>↵</kbd> to open.</p>
+    </main>
+
+    <main class="view" id="view-transcript" hidden>
+      <!-- Stays put while you scroll: where you came from, what you are reading,
+           and the one thing you came here to do. -->
+      <div class="reader-bar" id="reader-bar">
+        <a class="ghost-link back-link" href="/">← Search</a>
+        <span class="reader-title" id="bar-title"></span>
+        <span class="reader-folder mono" id="bar-cwd"></span>
+        <button type="button" class="primary" id="copy-resume">Copy resume command</button>
+      </div>
+      <header class="transcript-header" id="transcript-header" hidden>
+        <h1 class="headline" id="t-title"></h1>
+        <p class="meta mono" id="t-cwd"></p>
+        <p class="meta" id="t-meta"></p>
+        <p class="notice" id="t-missing" hidden></p>
+        <p class="resume-row"><code class="mono resume" id="t-resume" tabindex="0"></code></p>
+      </header>
+      <p class="status-line" id="transcript-status" hidden></p>
+      <div class="messages" id="messages"></div>
+      <p class="load-row"><button type="button" class="ghost" id="load-more" hidden>Load more messages</button></p>
+    </main>
+  </body>
+</html>

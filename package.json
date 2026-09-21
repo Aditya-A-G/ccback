@@ -1,0 +1,60 @@
+{
+  "name": "ccfind",
+  "version": "0.1.0",
+  "description": "Find any Claude Code session by what was said in it, and jump straight back into it.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "search",
+    "sessions",
+    "transcripts",
+    "cli",
+    "resume"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "ccfind": "dist/cli.js",
+    "ccf": "dist/cli.js"
+  },
+  "main": "dist/core/index.js",
+  "types": "dist/core/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node scripts/copy-static.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "pretest": "npm run build",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "ink": "^7.1.1",
+    "react": "^19.3.0"
+  },
+  "optionalDependencies": {
+    "@huggingface/transformers": "^4.3.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.3.0",
+    "ink-testing-library": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}
