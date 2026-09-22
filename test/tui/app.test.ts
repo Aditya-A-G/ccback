@@ -126,7 +126,7 @@ describe('the recent list', () => {
     expect(frame).not.toContain('hybrid');
     expect(frame).not.toContain('semantic');
     expect(frame).not.toContain('Tab');
-    expect(frame).not.toContain('⇥');
+    expect(frame).not.toContain(' tab');
     // The only ▸ is the row marker, and it never sits next to a mode name.
     expect(frame).toContain('▸ Storyboards');
 
@@ -432,11 +432,11 @@ describe('stepping through a session’s matches', () => {
     await tick(60);
     await tui.send('r', 80);
 
-    expect(squash(tui.liveFrame())).toContain('match 1 of 7 ⇥');
+    expect(squash(tui.liveFrame())).toContain('match 1 of 7 tab');
     expect(plainFrame(tui.liveFrame())).toContain('match number 1');
 
     await tui.send(KEY.tab, 60);
-    expect(squash(tui.liveFrame())).toContain('match 2 of 7 ⇥');
+    expect(squash(tui.liveFrame())).toContain('match 2 of 7 tab');
     expect(plainFrame(tui.liveFrame())).toContain('match number 2');
 
     await tui.send(KEY.tab, 60);
@@ -464,7 +464,7 @@ describe('stepping through a session’s matches', () => {
     const frame = squash(tui.liveFrame());
     expect(frame).toContain('the only match');
     expect(frame).not.toContain('match 1 of 1');
-    expect(frame).not.toContain('⇥');
+    expect(frame).not.toContain(' tab');
     expect(frame).not.toContain('matches');
 
     await tui.send(KEY.escape);
@@ -1269,7 +1269,7 @@ describe('the footer', () => {
 
     await tui.send('r', 100);
     footer = squash(tui.liveFrame());
-    expect(footer).toContain('⇥ matches');
+    expect(footer).toContain('tab matches');
     expect(footer).toContain('^E full');
     expect(footer).toContain('^R newest');
 

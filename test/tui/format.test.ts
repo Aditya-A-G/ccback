@@ -448,7 +448,7 @@ describe('queryLineParts', () => {
 describe('fitFooter', () => {
   const hints = [
     { text: '⏎ resume', priority: 1 },
-    { text: '⇥ matches', priority: 3 },
+    { text: 'tab matches', priority: 3 },
     { text: '^E full message', priority: 6 },
     { text: '^R sort: best match', priority: 7 },
     { text: '^Y copy', priority: 4 },
@@ -459,7 +459,7 @@ describe('fitFooter', () => {
   it('shows everything when it fits, in the order given', () => {
     const line = fitFooter(hints, 120);
     expect(line).toBe(
-      ' ⏎ resume   ⇥ matches   ^E full message   ^R sort: best match   ^Y copy   ^O browser   esc quit',
+      ' ⏎ resume   tab matches   ^E full message   ^R sort: best match   ^Y copy   ^O browser   esc quit',
     );
   });
 

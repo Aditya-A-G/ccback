@@ -835,14 +835,14 @@ function renderSegments(segments: Segment[]): React.JSX.Element[] {
 }
 
 /**
- * `You · Sep 10 · match 2 of 7  ⇥` — the key only when it does something.
+ * `You · Sep 10 · match 2 of 7  tab` — the key only when it does something.
  *
  * `capped` makes it `50+`: the number is how many matches were *fetched*, and
  * printing a cap as though it were a count is a small lie that a user with 300
  * matching messages will notice.
  *
  * The order is named only when it is not the default one — `match 3 of 23 ·
- * newest first  ⇥` — because "best" is what everybody already assumes, and a
+ * newest first  tab` — because "best" is what everybody already assumes, and a
  * label that is always there stops being read.
  */
 export function previewHeader(
@@ -858,7 +858,7 @@ export function previewHeader(
   if (total > 1) {
     parts.push(`match ${index + 1} of ${total}${capped ? '+' : ''}`);
     if (order !== 'best') parts.push(`${order} first`);
-    parts[parts.length - 1] += '  ⇥';
+    parts[parts.length - 1] += '  tab';
   }
   return parts.join(' · ');
 }
