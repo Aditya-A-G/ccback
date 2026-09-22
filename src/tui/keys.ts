@@ -58,6 +58,8 @@ export type KeyAction =
   | { type: 'down' }
   | { type: 'left' }
   | { type: 'right' }
+  | { type: 'nextMatch' }
+  | { type: 'prevMatch' }
   | { type: 'wordLeft' }
   | { type: 'wordRight' }
   | { type: 'lineStart' }
@@ -77,6 +79,7 @@ export type KeyAction =
 
 /** Escape sequences Ink may hand over undecoded, minus the leading ESC. */
 export const RAW_SEQUENCES: Record<string, KeyAction> = {
+  '[Z': { type: 'prevMatch' }, // Shift+Tab on terminals that send it raw
   '[1;3D': { type: 'wordLeft' },
   '[1;5D': { type: 'wordLeft' },
   '[1;9D': { type: 'wordLeft' },
@@ -161,9 +164,9 @@ export function classifyKey(input: string, key: Partial<KeyFlags>): KeyAction | 
   if (key.pageDown) return { type: 'pageDown' };
   if (key.home) return { type: 'lineStart' };
   if (key.end) return { type: 'lineEnd' };
-  // Tab is deliberately unbound: search has one mode, so there is nothing to
-  // cycle, and inserting a tab into the query would only be noise.
-  if (key.tab) return null;
+  // Tab walks the matches inside the selected session; Shift+Tab walks back.
+  // The arrows stay with the text cursor, as in every other text field.
+  if (key.tab) return key.shift ? { type: 'prevMatch' } : { type: 'nextMatch' };
 
   if (input.length > 1) {
     const raw = RAW_SEQUENCES[input];

@@ -52,7 +52,8 @@ In the picker:
 | --- | --- |
 | type | search as you type |
 | ↑ ↓ / Ctrl+P Ctrl+N | move between sessions |
-| ← → | step through this session's matches |
+| Tab / Shift+Tab | step through this session's matches |
+| ← → | move the cursor in the search box |
 | Enter | resume the session in its original folder (`claude --resume <id>`) |
 | Ctrl+Y | copy `cd '<folder>' && claude --resume '<id>'` |
 | Ctrl+O | open the full transcript in the browser |

@@ -561,8 +561,6 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
 
   // ---- input -------------------------------------------------------------
 
-  /** ← and → walk the matches instead of the text when there are results. */
-  const arrowsStepMatches = hasQuery && results.length > 0;
 
   useInput((input, key) => {
     const action = classifyKey(input, key);
@@ -599,12 +597,18 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
         else move(listRows);
         return;
       case 'left':
-        if (expanded || arrowsStepMatches) stepMatch(-1);
+        if (expanded) stepMatch(-1);
         else setQuery(moveLeft);
         return;
       case 'right':
-        if (expanded || arrowsStepMatches) stepMatch(1);
+        if (expanded) stepMatch(1);
         else setQuery(moveRight);
+        return;
+      case 'nextMatch':
+        stepMatch(1);
+        return;
+      case 'prevMatch':
+        stepMatch(-1);
         return;
       case 'wordLeft':
         setQuery(moveWordLeft);
@@ -818,7 +822,7 @@ function renderSegments(segments: Segment[]): React.JSX.Element[] {
 }
 
 /**
- * `You · Sep 10 · match 2 of 7  ← →` — the arrows only when they do something.
+ * `You · Sep 10 · match 2 of 7  ⇥` — the key only when it does something.
  *
  * `capped` makes it `50+`: the number is how many matches were *fetched*, and
  * printing a cap as though it were a count is a small lie that a user with 300
@@ -833,7 +837,7 @@ export function previewHeader(
 ): string {
   const who = snippet.role === 'user' ? 'You' : 'Claude';
   const parts = [who, shortDate(snippet.ts, now)];
-  if (total > 1) parts.push(`match ${index + 1} of ${total}${capped ? '+' : ''}  ← →`);
+  if (total > 1) parts.push(`match ${index + 1} of ${total}${capped ? '+' : ''}  ⇥`);
   return parts.join(' · ');
 }
 

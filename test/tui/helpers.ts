@@ -14,6 +14,7 @@ export const KEY = {
   escape: '\u001B',
   enter: '\r',
   tab: '\t',
+  shiftTab: '\u001B[Z',
   up: '\u001B[A',
   down: '\u001B[B',
   left: '\u001B[D',

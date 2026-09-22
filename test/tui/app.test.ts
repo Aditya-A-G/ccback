@@ -130,7 +130,7 @@ describe('the recent list', () => {
     // The only ▸ is the row marker, and it never sits next to a mode name.
     expect(frame).toContain('▸ Storyboards');
 
-    // Tab does nothing at all, and types nothing.
+    // With nothing to step through, Tab does nothing and types nothing.
     await tui.send(KEY.tab);
     expect(plainFrame(tui.liveFrame())).toContain(' › █');
 
@@ -264,7 +264,7 @@ describe('line editing in the search box', () => {
       deps: { search: () => [], recentSessions: () => [] },
     });
 
-  it('moves the cursor with ← → when there are no results to step through', async () => {
+  it('moves the cursor with ← → even while there are results', async () => {
     const tui = editor();
     await tick(60);
     await tui.type('recording');
@@ -427,31 +427,36 @@ describe('stepping through a session’s matches', () => {
       },
     });
 
-  it('shows the match counter and walks it with ← →', async () => {
+  it('shows the match counter and walks it with Tab / Shift+Tab', async () => {
     const tui = withMatches(manyMatches(7));
     await tick(60);
     await tui.send('r', 80);
 
-    expect(squash(tui.liveFrame())).toContain('match 1 of 7 ← →');
+    expect(squash(tui.liveFrame())).toContain('match 1 of 7 ⇥');
     expect(plainFrame(tui.liveFrame())).toContain('match number 1');
 
-    await tui.send(KEY.right, 60);
-    expect(squash(tui.liveFrame())).toContain('match 2 of 7 ← →');
+    await tui.send(KEY.tab, 60);
+    expect(squash(tui.liveFrame())).toContain('match 2 of 7 ⇥');
     expect(plainFrame(tui.liveFrame())).toContain('match number 2');
 
-    await tui.send(KEY.right, 60);
-    await tui.send(KEY.left, 60);
+    await tui.send(KEY.tab, 60);
+    await tui.send(KEY.shiftTab, 60);
     expect(squash(tui.liveFrame())).toContain('match 2 of 7');
 
-    // The text cursor did not move: typing still appends.
+    // ← moves the text cursor and never the match.
+    await tui.send(KEY.left, 60);
+    expect(squash(tui.liveFrame())).toContain('match 2 of 7');
+    expect(plainFrame(tui.liveFrame())).toContain('▏r');
+
+    // Typing goes where the cursor is; a new query starts again at match 1.
     await tui.send('x', 80);
-    expect(plainFrame(tui.liveFrame())).toContain('rx█');
+    expect(plainFrame(tui.liveFrame())).toContain('x▏r');
 
     await tui.send(KEY.escape);
     expect(await tui.exitCode).toBe(0);
   });
 
-  it('hides the arrows and the counter when a session has one match', async () => {
+  it('hides the Tab hint and the counter when a session has one match', async () => {
     const tui = withMatches([makeMatch({ text: 'the only match' })]);
     await tick(60);
     await tui.send('r', 80);
@@ -459,7 +464,7 @@ describe('stepping through a session’s matches', () => {
     const frame = squash(tui.liveFrame());
     expect(frame).toContain('the only match');
     expect(frame).not.toContain('match 1 of 1');
-    expect(frame).not.toContain('← →');
+    expect(frame).not.toContain('⇥');
     expect(frame).not.toContain('matches');
 
     await tui.send(KEY.escape);
@@ -476,7 +481,7 @@ describe('stepping through a session’s matches', () => {
     });
     await tick(60);
     await tui.send('r', 80);
-    await tui.send(KEY.right, 60);
+    await tui.send(KEY.tab, 60);
     expect(squash(tui.liveFrame())).toContain('match 2 of 4');
 
     await tui.send(KEY.down, 80);
@@ -645,7 +650,7 @@ describe('the full message view', () => {
     expect(await tui.exitCode).toBe(0);
   });
 
-  it('still steps matches with ← → while expanded', async () => {
+  it('steps matches with ← → and Tab while expanded', async () => {
     const tui = expandable();
     await tick(60);
     await tui.send('r', 80);
@@ -654,6 +659,8 @@ describe('the full message view', () => {
 
     await tui.send(KEY.right, 80);
     expect(squash(tui.liveFrame())).toContain('match 2 of 2');
+    await tui.send(KEY.shiftTab, 80);
+    expect(squash(tui.liveFrame())).toContain('match 1 of 2');
 
     await tui.send(KEY.escape);
     await tui.send(KEY.escape);
@@ -1139,7 +1146,7 @@ describe('clipboard and browser', () => {
     });
     await tick(60);
     await tui.send('r', 80);
-    await tui.send(KEY.right, 60);
+    await tui.send(KEY.tab, 60);
     await tui.send(KEY.ctrlO, 80);
 
     expect(asked).toEqual([['sess-77', 701]]);
@@ -1173,7 +1180,7 @@ describe('the footer', () => {
 
     await tui.send('r', 100);
     footer = squash(tui.liveFrame());
-    expect(footer).toContain('←→ matches');
+    expect(footer).toContain('⇥ matches');
     expect(footer).toContain('^E full');
     expect(footer).toContain('^R recent');
 

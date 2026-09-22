@@ -787,7 +787,7 @@ export interface FooterState {
  * a button says what it does, not what is already true.
  */
 export function footerHints(state: FooterState): FooterHint[] {
-  const matches: FooterHint[] = state.hasMatches ? [{ text: '←→ matches', priority: 3 }] : [];
+  const matches: FooterHint[] = state.hasMatches ? [{ text: '⇥ matches', priority: 3 }] : [];
   const copy: FooterHint[] = state.hasCurrent ? [{ text: '^Y copy', priority: 4 }] : [];
   const browser: FooterHint[] =
     state.canOpenBrowser && state.hasCurrent ? [{ text: '^O web', priority: 5 }] : [];

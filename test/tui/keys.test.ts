@@ -14,11 +14,11 @@ describe('classifyKey', () => {
     expect(classifyKey('e', key({ ctrl: true }))).toEqual({ type: 'fullMessage' });
   });
 
-  it('keeps Ctrl+S and Tab inert: no action and no typing', () => {
+  it('keeps Ctrl+S inert and binds Tab / Shift+Tab to the matches', () => {
     expect(classifyKey('s', key({ ctrl: true }))).toBeNull();
-    expect(classifyKey('', key({ tab: true }))).toBeNull();
-    expect(classifyKey('', key({ tab: true, shift: true }))).toBeNull();
-    // No mode switcher: nothing at all is bound to Tab.
+    expect(classifyKey('', key({ tab: true }))).toEqual({ type: 'nextMatch' });
+    expect(classifyKey('', key({ tab: true, shift: true }))).toEqual({ type: 'prevMatch' });
+    expect(classifyKey('[Z', key({}))).toEqual({ type: 'prevMatch' });
     expect(classifyKey('d', key({ ctrl: true }))).toBeNull();
   });
 
