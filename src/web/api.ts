@@ -76,11 +76,17 @@ function parseMode(params: URLSearchParams): SearchMode {
   throw new HttpError(400, 'mode must be auto, keyword, semantic or hybrid');
 }
 
+/**
+ * The page's two-way control: best match or most recent. `best` is the name
+ * the CLI and the picker use; `relevance` is the older one the page still
+ * sends, and both mean the same ranking.
+ */
 function parseSort(params: URLSearchParams): SortOrder {
   const raw = params.get('sort');
   if (raw === null || raw === '') return 'relevance';
-  if (raw === 'relevance' || raw === 'recent') return raw;
-  throw new HttpError(400, 'sort must be relevance or recent');
+  if (raw === 'best' || raw === 'relevance') return 'relevance';
+  if (raw === 'recent') return 'recent';
+  throw new HttpError(400, 'sort must be best or recent');
 }
 
 function parseRole(params: URLSearchParams): 'user' | 'assistant' | undefined {

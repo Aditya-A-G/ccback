@@ -42,11 +42,14 @@ function documentedControlKeys(): Set<string> {
   return out;
 }
 
+/** The orders the picker cycles through, and the footer has to cover. */
+const ORDERS = ['best', 'newest', 'oldest'] as const;
+
 /** Every `^X` the picker can show in its footer, across every state. */
 function footerControlKeys(): Set<string> {
   const out = new Set<string>();
   for (const expanded of [false, true]) {
-    for (const sort of ['relevance', 'recent'] as const) {
+    for (const order of ORDERS) {
       const hints = footerHints({
         expanded,
         hasMatches: true,
@@ -54,7 +57,7 @@ function footerControlKeys(): Set<string> {
         hasQuery: true,
         hasCurrent: true,
         canOpenBrowser: true,
-        sort,
+        order,
       });
       for (const hint of hints) {
         for (const match of hint.text.matchAll(/\^([A-Za-z])/g)) out.add(match[1]!.toLowerCase());
@@ -106,6 +109,34 @@ describe('the README key table', () => {
     // Enter and Esc really are bound.
     expect(classifyKey('', key({ return: true }))).toEqual({ type: 'resume' });
     expect(classifyKey('', key({ escape: true }))).toEqual({ type: 'escape' });
+  });
+
+  it('describes Ctrl+R as the three-step cycle the footer offers', () => {
+    const row = keyTableRows().find((entry) => entry.keys.includes('Ctrl+R'));
+    expect(row, 'the README has no Ctrl+R row').toBeDefined();
+    // The row names all three steps, in the order the key moves through them.
+    const action = row!.action.toLowerCase();
+    for (const word of ['best match', 'newest', 'oldest']) {
+      expect(action, word).toContain(word);
+    }
+    expect(action.indexOf('newest')).toBeLessThan(action.indexOf('oldest'));
+
+    // And those are exactly the three labels the footer can show.
+    const labels = new Set<string>();
+    for (const order of ORDERS) {
+      for (const hint of footerHints({
+        expanded: false,
+        hasMatches: true,
+        hasPreview: true,
+        hasQuery: true,
+        hasCurrent: true,
+        canOpenBrowser: true,
+        order,
+      })) {
+        if (hint.text.startsWith('^R ')) labels.add(hint.text);
+      }
+    }
+    expect([...labels].sort()).toEqual(['^R best', '^R newest', '^R oldest']);
   });
 
   it('says nothing about Ctrl+S, which does nothing', () => {
@@ -235,6 +266,27 @@ describe('--help', () => {
     const lines = HELP.split('\n').slice(0, -1);
     expect(Math.max(...lines.map((line) => line.length))).toBeLessThanOrEqual(80);
     expect(screenRows(HELP)).toBeLessThanOrEqual(24);
+  });
+
+  it('describes the recency tilt, in the README and in --help alike', () => {
+    // One honest sentence: fit first, recency as the tie-breaker — not a claim
+    // that the newest session wins.
+    const sentence = 'Best match ranks by how well a session fits your words and meaning,';
+    expect(readme).toContain(sentence);
+    expect(readme).toContain('small preference for recent activity when it is close');
+    expect(HELP).toContain('Best match ranks by words and meaning, preferring recent activity');
+  });
+
+  it('documents the same three --sort values in both', () => {
+    for (const [name, text] of [
+      ['--help', HELP],
+      ['README', readme],
+    ] as const) {
+      expect(text, name).toContain('--sort best|recent|oldest');
+    }
+    // `relevance` still works, and stays undocumented.
+    expect(readme).not.toContain('--sort relevance');
+    expect(HELP).not.toContain('relevance');
   });
 
   it('agrees with the README that --port 0 takes any free port', () => {

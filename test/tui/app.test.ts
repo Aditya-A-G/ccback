@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { SessionResult } from '../../src/core/index.js';
 import { spawnResume, UserError } from '../../src/core/index.js';
 import { defaultDeps } from '../../src/tui/deps.js';
-import type { MatchSnippet, TuiSearchRequest } from '../../src/tui/deps.js';
+import type { MatchSnippet, TuiDeps, TuiSearchRequest } from '../../src/tui/deps.js';
 import {
   HOME,
   KEY,
@@ -710,56 +710,145 @@ describe('the full message view', () => {
   });
 });
 
-describe('sort order', () => {
-  it('toggles with Ctrl+R, re-queries and says which order it is in', async () => {
+describe('order: one Ctrl+R cycle for sessions and matches alike', () => {
+  /** Records what each Ctrl+R press asked the core for. */
+  const recorder = (): {
+    sorts: string[];
+    orders: (string | undefined)[];
+    deps: Partial<TuiDeps>;
+  } => {
     const sorts: string[] = [];
-    const tui = startTui({
+    const orders: (string | undefined)[] = [];
+    return {
+      sorts,
+      orders,
       deps: {
         search: (request) => {
           sorts.push(request.sort);
           return [makeResult({ sessionId: 'a' }), makeResult({ sessionId: 'b', title: 'Second' })];
         },
+        sessionMatches: (request) => {
+          orders.push(request.order);
+          return [makeMatch(), makeMatch({ messageId: 202, ts: '2026-09-11T12:00:00.000Z' })];
+        },
       },
-    });
+    };
+  };
+
+  it('steps best → newest → oldest → best, and names the next step', async () => {
+    const { sorts, orders, deps } = recorder();
+    const tui = startTui({ deps });
     await tick(60);
     await tui.send('r', 80);
-    expect(squash(tui.liveFrame())).toContain('^R recent');
+    expect(squash(tui.liveFrame())).toContain('^R newest');
+    expect(sorts[sorts.length - 1]).toBe('relevance');
+    expect(orders[orders.length - 1]).toBe('best');
 
     await tui.send(KEY.down, 60); // selection on the second session
-    await tui.send(KEY.ctrlR, 100);
+    await tui.send(KEY.ctrlR, 120);
     expect(sorts[sorts.length - 1]).toBe('recent');
-    // The label names the order it will switch to, not the one already in force.
-    expect(squash(tui.liveFrame())).toContain('^R best');
+    expect(orders[orders.length - 1]).toBe('newest');
+    // The label names the order it will switch to, not the one in force.
+    expect(squash(tui.liveFrame())).toContain('^R oldest');
     // The same session stays selected across the re-query.
     expect(plainFrame(tui.liveFrame())).toContain('▸ Second');
 
-    await tui.send(KEY.ctrlR, 100);
+    await tui.send(KEY.ctrlR, 120);
+    // Sessions stay in recent order; only the matches turn round.
+    expect(sorts[sorts.length - 1]).toBe('recent');
+    expect(orders[orders.length - 1]).toBe('oldest');
+    expect(squash(tui.liveFrame())).toContain('^R best');
+    expect(plainFrame(tui.liveFrame())).toContain('▸ Second');
+
+    await tui.send(KEY.ctrlR, 120);
     expect(sorts[sorts.length - 1]).toBe('relevance');
+    expect(squash(tui.liveFrame())).toContain('^R newest');
+    // Back where it started: the matches for `best` come from the cache the
+    // first press filled, so the core is asked for each order exactly once.
+    expect([...new Set(orders)]).toEqual(['best', 'newest', 'oldest']);
+    expect(squash(tui.liveFrame())).not.toContain('first');
 
     await tui.send(KEY.escape);
     expect(await tui.exitCode).toBe(0);
   });
 
-  it('honours the sort the caller asked for', async () => {
+  it('names the match order in the preview header, but only when it is not best', async () => {
+    const { deps } = recorder();
+    const tui = startTui({ deps });
+    await tick(60);
+    await tui.send('r', 80);
+    expect(squash(tui.liveFrame())).toContain('match 1 of 2');
+    expect(squash(tui.liveFrame())).not.toContain('first');
+
+    await tui.send(KEY.ctrlR, 120);
+    expect(squash(tui.liveFrame())).toContain('match 1 of 2 · newest first');
+
+    await tui.send(KEY.ctrlR, 120);
+    expect(squash(tui.liveFrame())).toContain('match 1 of 2 · oldest first');
+
+    await tui.send(KEY.escape);
+    expect(await tui.exitCode).toBe(0);
+  });
+
+  it('goes back to the first match when the order changes', async () => {
+    const { deps } = recorder();
+    const tui = startTui({ deps });
+    await tick(60);
+    await tui.send('r', 80);
+    await tui.send(KEY.tab, 80);
+    expect(squash(tui.liveFrame())).toContain('match 2 of 2');
+
+    await tui.send(KEY.ctrlR, 120);
+    expect(squash(tui.liveFrame())).toContain('match 1 of 2 · newest first');
+
+    await tui.send(KEY.escape);
+    expect(await tui.exitCode).toBe(0);
+  });
+
+  it('does not pin the selection onto a later query', async () => {
+    const { deps } = recorder();
+    const tui = startTui({ deps });
+    await tick(60);
+    await tui.send('r', 80);
+    await tui.send(KEY.down, 60);
+    // Three presses, back to `best`, with the selection kept each time.
+    for (let i = 0; i < 3; i += 1) await tui.send(KEY.ctrlR, 120);
+    expect(plainFrame(tui.liveFrame())).toContain('▸ Second');
+
+    // A new search starts at the top again, whatever was selected before.
+    await tui.send('e', 120);
+    expect(plainFrame(tui.liveFrame())).not.toContain('▸ Second');
+
+    await tui.send(KEY.escape);
+    expect(await tui.exitCode).toBe(0);
+  });
+
+  it('honours the order the caller asked for', async () => {
     const sorts: string[] = [];
+    const orders: (string | undefined)[] = [];
     const tui = startTui({
       query: 'recording',
-      sort: 'recent',
+      sort: 'oldest',
       deps: {
         search: (request) => {
           sorts.push(request.sort);
           return [makeResult()];
         },
+        sessionMatches: (request) => {
+          orders.push(request.order);
+          return [makeMatch(), makeMatch({ messageId: 202 })];
+        },
       },
     });
     await settle(tui);
     expect(sorts[0]).toBe('recent');
+    expect(orders[0]).toBe('oldest');
     expect(squash(tui.liveFrame())).toContain('^R best');
     await tui.send(KEY.escape);
     expect(await tui.exitCode).toBe(0);
   });
 
-  it('offers no sort toggle while browsing recent sessions', async () => {
+  it('offers no order cycle while browsing recent sessions', async () => {
     const tui = startTui({ deps: { recentSessions: () => [makeResult()] } });
     await settle(tui);
     expect(squash(tui.liveFrame())).not.toContain('^R ');
@@ -1182,7 +1271,7 @@ describe('the footer', () => {
     footer = squash(tui.liveFrame());
     expect(footer).toContain('⇥ matches');
     expect(footer).toContain('^E full');
-    expect(footer).toContain('^R recent');
+    expect(footer).toContain('^R newest');
 
     await tui.send(KEY.escape);
     expect(await tui.exitCode).toBe(0);

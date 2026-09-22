@@ -8,6 +8,7 @@
  */
 
 import { sanitizeLine } from '../core/sanitize.js';
+import type { MatchOrder } from './deps.js';
 
 /** The character used wherever text had to be cut. */
 export const ELLIPSIS = '…';
@@ -769,13 +770,21 @@ export interface FooterState {
   hasMatches: boolean;
   /** Something is in the preview, so ^E has something to open. */
   hasPreview: boolean;
-  /** The user has typed a query, so sorting means something. */
+  /** The user has typed a query, so ordering means something. */
   hasQuery: boolean;
   /** A row is selected. */
   hasCurrent: boolean;
   /** The browser action is wired up. */
   canOpenBrowser: boolean;
-  sort: 'relevance' | 'recent';
+  /** The order in force right now; the hint names the next one. */
+  order: MatchOrder;
+}
+
+/** The order Ctrl+R moves to from here: best → newest → oldest → best. */
+export function nextOrder(order: MatchOrder): MatchOrder {
+  if (order === 'best') return 'newest';
+  if (order === 'newest') return 'oldest';
+  return 'best';
 }
 
 /**
@@ -808,7 +817,8 @@ export function footerHints(state: FooterState): FooterHint[] {
     { text: '⏎ resume', priority: 1 },
     ...matches,
     ...(state.hasPreview ? [{ text: '^E full', priority: 6 }] : []),
-    ...(state.hasQuery ? [{ text: `^R ${state.sort === 'relevance' ? 'recent' : 'best'}`, priority: 7 }] : []),
+    // The hint names what the next press does, not the order already in force.
+    ...(state.hasQuery ? [{ text: `^R ${nextOrder(state.order)}`, priority: 7 }] : []),
     ...copy,
     ...browser,
     { text: 'esc quit', priority: 2 },

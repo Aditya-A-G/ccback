@@ -58,8 +58,10 @@ In the picker:
 | Ctrl+Y | copy `cd '<folder>' && claude --resume '<id>'` |
 | Ctrl+O | open the full transcript in the browser |
 | Ctrl+E | show the whole message behind a snippet |
-| Ctrl+R | switch between best match and most recent |
+| Ctrl+R | cycle the order: best match → newest first → oldest first |
 | Esc | quit |
+
+Best match ranks by how well a session fits your words and meaning, with a small preference for recent activity when it is close. Ctrl+R steps past it: `newest first` and `oldest first` order the sessions by last activity and walk a session's own matches by the clock, and the preview header names the order whenever it is not best match.
 
 Smart search needs no key: it sets itself up on its own, in the background.
 
@@ -77,7 +79,7 @@ With `--keyword-only` or `CCFIND_KEYWORD_ONLY=1`, or when the embedding librarie
 -w, --web              open the browser UI (a second run reuses the one already up)
 -p, --print            plain results instead of the picker (automatic when piped)
     --json             machine-readable results
-    --sort recent      order by last activity instead of best match
+    --sort best|recent|oldest  the picker's starting order (recent = newest)
     --stats            what the index holds, and where
     --reindex [--full] update the index now; --full rebuilds it from scratch
     --keyword-only     skip smart search for this run
@@ -91,6 +93,10 @@ With `--keyword-only` or `CCFIND_KEYWORD_ONLY=1`, or when the embedding librarie
 `-p` and `--json` never download anything: if the smart-search model is not on
 this machine already, they answer with keyword results and say so in `modeUsed`.
 `ccfind --reindex` is what sets smart search up from a terminal.
+
+`--sort` sets the order the picker opens in, and the order `-p`/`--json` print
+the sessions in — there, both `recent` and `oldest` mean the most recently used
+session first, because a printed list has no matches to step through.
 
 `--port 0` asks the operating system for any free port, and a busy port is
 stepped past rather than refused.

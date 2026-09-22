@@ -104,13 +104,13 @@ describe('dashed query words', () => {
   it('still rejects a bad value for a flag it knows, quoted', () => {
     const result = run(withFixture(['anything', '--sort', 'bogus']));
     expect(result.status).toBe(2);
-    expect(result.stderr.trim()).toBe('Unknown --sort: "bogus". Use relevance or recent.');
+    expect(result.stderr.trim()).toBe('Unknown --sort: "bogus". Use best, recent or oldest.');
   });
 
   it('quotes an empty value so the message still makes sense', () => {
     const result = run(withFixture(['anything', '--sort', '']));
     expect(result.status).toBe(2);
-    expect(result.stderr.trim()).toBe('Unknown --sort: "". Use relevance or recent.');
+    expect(result.stderr.trim()).toBe('Unknown --sort: "". Use best, recent or oldest.');
   });
 });
 

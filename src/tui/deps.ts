@@ -34,6 +34,13 @@ export type TuiSearchMode = 'auto' | 'keyword' | 'semantic' | 'hybrid';
 /** Best match first, or most recently used first. */
 export type SortOrder = 'relevance' | 'recent';
 
+/**
+ * The picker's one combined order, cycled with Ctrl+R: `best` is the ranking
+ * (sessions by relevance, matches best first), `newest` and `oldest` are
+ * chronological and apply to the session list and the matches alike.
+ */
+export type MatchOrder = 'best' | 'newest' | 'oldest';
+
 /** One matching message of a session, as returned by `sessionMatches`. */
 export interface MatchSnippet {
   messageId: number;
@@ -95,6 +102,8 @@ export interface TuiMatchesRequest {
   query: string;
   mode?: TuiSearchMode | undefined;
   limit?: number | undefined;
+  /** Which order to return them in. Defaults to `best`. */
+  order?: MatchOrder | undefined;
 }
 
 export interface TuiSemanticRequest {
@@ -113,8 +122,8 @@ export interface TuiOptions {
   query: string;
   /** Overrides the picker's `auto` mode. */
   mode?: TuiSearchMode | undefined;
-  /** Initial sort order; toggled with Ctrl+R. */
-  sort?: SortOrder | undefined;
+  /** Initial combined order; cycled with Ctrl+R. */
+  sort?: MatchOrder | undefined;
   limit?: number | undefined;
   cwdPrefix?: string | undefined;
   since?: string | undefined;

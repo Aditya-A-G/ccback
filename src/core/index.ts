@@ -104,6 +104,17 @@ export {
   semanticSearch,
 } from './semantic.js';
 
+export {
+  MAX_RECENCY_WEIGHT,
+  RECENCY_BOOST,
+  RECENCY_DECAY_DAYS,
+  recencyWeight,
+  sessionSortFor,
+  tiltByRecency,
+  tiltScore,
+} from './ranking.js';
+export type { RecencyTiltable } from './ranking.js';
+
 export type { FusedSession, RankedList } from './hybrid.js';
 export { reciprocalRankFusion, RRF_K } from './hybrid.js';
 
@@ -120,7 +131,7 @@ export type { IndexAccessOptions, RecentSessionsOptions, SearchOptions } from '.
 export { recentSessions, resolveAutoMode, search } from './search.js';
 
 export type { FullMessage, GetMessageOptions, SessionMatchesOptions } from './matches.js';
-export { DEFAULT_SESSION_MATCH_LIMIT, getMessage, sessionMatches } from './matches.js';
+export { DEFAULT_SESSION_MATCH_LIMIT, getMessage, orderMatches, sessionMatches } from './matches.js';
 
 export type {
   EnableSemanticOptions,
@@ -159,6 +170,7 @@ export {
 
 export type {
   IndexedMessage,
+  MatchOrder,
   MatchSnippet,
   MatchSource,
   RankedSession,

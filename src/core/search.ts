@@ -7,6 +7,7 @@ import type { SearchFilters } from './filters.js';
 import { reciprocalRankFusion } from './hybrid.js';
 import { keywordSearch } from './keyword.js';
 import { resolveIndexPath, resolveModelCacheDir } from './paths.js';
+import { tiltByRecency } from './ranking.js';
 import { buildResumeCommand } from './resume.js';
 import { hasEmbeddings, NO_EMBEDDINGS_HINT, semanticSearch } from './semantic.js';
 import type {
@@ -42,6 +43,12 @@ export interface SearchOptions extends IndexAccessOptions, SearchFilters {
   sort?: SortOrder | undefined;
   /** Defaults to 10. */
   limit?: number | undefined;
+  /**
+   * The clock the recency tilt is measured against, as epoch milliseconds.
+   * Defaults to `Date.now()`; tests pass a fixed value so a ranking is
+   * reproducible.
+   */
+  now?: number | undefined;
   /**
    * Embedder used by `semantic` and `hybrid`. Defaults to the transformers.js
    * model. Tests inject a deterministic fake.
@@ -108,6 +115,7 @@ export async function search(options: SearchOptions): Promise<SessionResult[]> {
   const requested = options.mode ?? 'auto';
   const limit = options.limit ?? 10;
   const sort = options.sort ?? 'relevance';
+  const now = options.now ?? Date.now();
   const filters = filtersOf(options);
 
   if (options.query.trim() === '') return [];
@@ -118,14 +126,14 @@ export async function search(options: SearchOptions): Promise<SessionResult[]> {
   const runKeyword = (): SessionResult[] =>
     hydrate(db, keywordSearch(db, options.query, { limit, filters }), () => ['keyword'], 'keyword');
 
-  if (mode === 'keyword') return order(runKeyword(), sort);
+  if (mode === 'keyword') return order(runKeyword(), sort, now, limit);
 
   try {
     if (mode === 'semantic') {
       requireEmbeddings(db);
       const embedder = await resolveEmbedder(options);
       const ranked = await semanticSearch(db, options.query, embedder, { limit, filters });
-      return order(hydrate(db, ranked, () => ['semantic'], 'semantic'), sort);
+      return order(hydrate(db, ranked, () => ['semantic'], 'semantic'), sort, now, limit);
     }
 
     requireEmbeddings(db);
@@ -135,14 +143,13 @@ export async function search(options: SearchOptions): Promise<SessionResult[]> {
       limit: HYBRID_CANDIDATES,
       filters,
     });
-    const fused = reciprocalRankFusion(
-      [
-        { source: 'keyword', sessions: keywordHits },
-        { source: 'semantic', sessions: semanticHits },
-      ],
-      undefined,
-      limit,
-    );
+    // Both halves are fused whole, and the tilt is applied to the fused
+    // scores: cutting to `limit` first would leave the tilt shuffling a top-N
+    // it had no say in choosing.
+    const fused = reciprocalRankFusion([
+      { source: 'keyword', sessions: keywordHits },
+      { source: 'semantic', sessions: semanticHits },
+    ]);
     const sourcesById = new Map(fused.map((f) => [f.sessionId, f.sources]));
     return order(
       hydrate(
@@ -157,17 +164,28 @@ export async function search(options: SearchOptions): Promise<SessionResult[]> {
         'hybrid',
       ),
       sort,
+      now,
+      limit,
     );
   } catch (err) {
     // Nobody asked for semantic search here; a model that will not load is a
     // reason to answer with keyword results, not to fail the search.
     if (!lenient) throw err;
-    return order(runKeyword(), sort);
+    return order(runKeyword(), sort, now, limit);
   }
 }
 
-function order(results: SessionResult[], sort: SortOrder): SessionResult[] {
-  return sort === 'recent' ? byRecency(results) : results;
+/**
+ * The last step of every mode: cut to `limit` and put the rows in order.
+ *
+ * `recent` is pure recency over the matched set the ranking already chose, and
+ * keeps the raw scores. `relevance` tilts the scores towards recent activity
+ * first (see `ranking.ts`) and then cuts, so the tilt decides membership as
+ * well as order.
+ */
+function order(results: SessionResult[], sort: SortOrder, now: number, limit: number): SessionResult[] {
+  if (sort === 'recent') return byRecency(results.slice(0, limit));
+  return tiltByRecency(results, now).slice(0, limit);
 }
 
 function requireEmbeddings(db: Db): void {

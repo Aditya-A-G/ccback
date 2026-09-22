@@ -15,10 +15,22 @@ export type SearchMode = 'auto' | 'keyword' | 'semantic' | 'hybrid';
 export type ResolvedSearchMode = 'keyword' | 'semantic' | 'hybrid';
 
 /**
- * Result ordering. `relevance` is best-first; `recent` keeps the same matched
- * set and orders it by last activity, newest first.
+ * Session ordering. `relevance` is best-first — how well a session fits the
+ * words and the meaning, with a small preference for recent activity when it
+ * is close (see `ranking.ts`). `recent` keeps the same matched set and orders
+ * it by last activity alone, newest first, with no tilt at all.
  */
 export type SortOrder = 'relevance' | 'recent';
+
+/**
+ * Order of the matching messages *inside* one session.
+ *
+ * `best` is the tilted ranking, the same idea as `relevance` above; `newest`
+ * and `oldest` are pure chronology. The picker uses the same three names for
+ * its one combined order, where `newest` and `oldest` also mean "list the
+ * sessions by last activity".
+ */
+export type MatchOrder = 'best' | 'newest' | 'oldest';
 
 /** Why a session matched. Hybrid results can carry both. */
 export type MatchSource = 'keyword' | 'semantic';

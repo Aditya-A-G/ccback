@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Text, useApp, useInput, useWindowSize } from 'ink';
-import { isUserError, NO_SESSIONS_YET } from '../core/index.js';
+import { isUserError, NO_SESSIONS_YET, sessionSortFor } from '../core/index.js';
 import type { IndexStatus, SessionResult } from '../core/index.js';
 import type {
   FullMessage,
+  MatchOrder,
   MatchSnippet,
   SemanticProgress,
   SemanticStatus,
@@ -38,6 +39,7 @@ import {
   formatRow,
   layoutHeights,
   locateHighlights,
+  nextOrder,
   PREVIEW_INDENT,
   queryLineParts,
   relativeAge,
@@ -89,7 +91,11 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
   const rows = Math.max(MIN_ROWS, windowSize.rows);
 
   const [query, setQuery] = useState<QueryState>(() => makeQuery(options.query ?? ''));
-  const [sort, setSort] = useState<SortOrder>(options.sort ?? 'relevance');
+  /**
+   * One combined order for the whole picker: which sessions come first *and*
+   * which of a session's matches you step through first. Ctrl+R cycles it.
+   */
+  const [order, setOrder] = useState<MatchOrder>(options.sort ?? 'best');
   const [results, setResults] = useState<SessionResult[]>([]);
   const [selected, setSelected] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -310,12 +316,15 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
   useEffect(() => {
     if (!ready) return undefined;
     const handle = setTimeout(() => {
-      void runSearch(query.text, sort);
+      // Keyed on the whole order, not on the session sort it implies: newest →
+      // oldest leaves the session sort alone, and a re-query that never runs
+      // would leave `keepSessionId` armed for whatever the user typed next.
+      void runSearch(query.text, sessionSortFor(order));
     }, deps.debounceMs);
     return () => {
       clearTimeout(handle);
     };
-  }, [query.text, sort, ready, reloadToken, deps.debounceMs, runSearch]);
+  }, [query.text, order, ready, reloadToken, deps.debounceMs, runSearch]);
 
   // ---- derived layout ----------------------------------------------------
 
@@ -339,7 +348,9 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
 
   // ---- matches of the selected session ------------------------------------
 
-  const matchKey = current && hasQuery ? `${queryText}\u0000${current.sessionId}` : '';
+  // The order is part of the key, so changing it re-fetches, caches each order
+  // separately, and resets the match index to the first one.
+  const matchKey = current && hasQuery ? `${queryText}\u0000${current.sessionId}\u0000${order}` : '';
 
   useEffect(() => {
     setMatchIndex(0);
@@ -367,6 +378,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
           mode: searchMode,
           // One more than the cap, so "exactly 50" is not reported as "50+".
           limit: MATCH_LIMIT + 1,
+          order,
         });
         // A stale answer for a session the user has already left is dropped.
         if (cancelled || id !== matchRequestId.current) return;
@@ -379,7 +391,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
     return () => {
       cancelled = true;
     };
-  }, [matchKey, current, deps, searchMode, queryText]);
+  }, [matchKey, current, deps, searchMode, queryText, order]);
 
   const matches = matchState && matchState.key === matchKey ? matchState.list : null;
   const fetchedMatches = matches?.length ?? 0;
@@ -656,7 +668,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
         if (!hasQuery) return;
         setNotice('');
         keepSessionId.current = current?.sessionId ?? null;
-        setSort((value) => (value === 'relevance' ? 'recent' : 'relevance'));
+        setOrder(nextOrder);
         return;
       case 'insert':
         setNotice('');
@@ -694,7 +706,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
     hasQuery,
     hasCurrent: current !== undefined,
     canOpenBrowser: openTranscript !== undefined,
-    sort,
+    order,
   });
   const footer = fitFooter(hints, width);
 
@@ -744,7 +756,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
           <Text> </Text>
           <Text dimColor wrap="truncate">
             {truncate(
-              `${PREVIEW_INDENT}${previewHeader(preview, now, safeMatchIndex, matchTotal, matchesCapped)}`,
+              `${PREVIEW_INDENT}${previewHeader(preview, now, safeMatchIndex, matchTotal, matchesCapped, order)}`,
               width,
             )}
           </Text>
@@ -773,6 +785,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
                 safeMatchIndex,
                 hasQuery ? matchTotal : 0,
                 hasQuery && matchesCapped,
+                order,
               )}`,
               width,
             )}
@@ -827,6 +840,10 @@ function renderSegments(segments: Segment[]): React.JSX.Element[] {
  * `capped` makes it `50+`: the number is how many matches were *fetched*, and
  * printing a cap as though it were a count is a small lie that a user with 300
  * matching messages will notice.
+ *
+ * The order is named only when it is not the default one — `match 3 of 23 ·
+ * newest first  ⇥` — because "best" is what everybody already assumes, and a
+ * label that is always there stops being read.
  */
 export function previewHeader(
   snippet: { role: string; ts: string },
@@ -834,10 +851,15 @@ export function previewHeader(
   index: number,
   total: number,
   capped = false,
+  order: MatchOrder = 'best',
 ): string {
   const who = snippet.role === 'user' ? 'You' : 'Claude';
   const parts = [who, shortDate(snippet.ts, now)];
-  if (total > 1) parts.push(`match ${index + 1} of ${total}${capped ? '+' : ''}  ⇥`);
+  if (total > 1) {
+    parts.push(`match ${index + 1} of ${total}${capped ? '+' : ''}`);
+    if (order !== 'best') parts.push(`${order} first`);
+    parts[parts.length - 1] += '  ⇥';
+  }
   return parts.join(' · ');
 }
 

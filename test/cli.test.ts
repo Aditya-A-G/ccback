@@ -194,6 +194,42 @@ describe('cli plain output', () => {
     expect(recent[0]?.sessionId).toBe('web-session');
   });
 
+  it('--sort oldest is accepted, and prints sessions newest first like --sort recent', () => {
+    const args = ['recording videos invoices project', '--json'];
+    const oldest = JSON.parse(run(withFixture([...args, '--sort', 'oldest'])).stdout) as {
+      sessionId: string;
+    }[];
+    const recent = JSON.parse(run(withFixture([...args, '--sort', 'recent'])).stdout) as {
+      sessionId: string;
+    }[];
+    // A printed list has no matches to step through, so both mean the same here.
+    expect(oldest.map((r) => r.sessionId)).toEqual(recent.map((r) => r.sessionId));
+  });
+
+  it('--sort best is the default, and relevance still means the same thing', () => {
+    const args = ['recording videos invoices project', '--json'];
+    const ids = (extra: string[] = []): string[] => {
+      const result = run(withFixture([...args, ...extra]));
+      expect(result.status, extra.join(' ')).toBe(0);
+      return (JSON.parse(result.stdout) as { sessionId: string }[]).map((r) => r.sessionId);
+    };
+    const plain = ids();
+    expect(ids(['--sort', 'best'])).toEqual(plain);
+    // The old name is undocumented but still accepted.
+    expect(ids(['--sort', 'relevance'])).toEqual(plain);
+  });
+
+  it('--json still carries a score, and two runs agree', () => {
+    const args = ['recording videos invoices project', '--json'];
+    const first = JSON.parse(run(withFixture(args)).stdout) as { sessionId: string; score: number }[];
+    const second = JSON.parse(run(withFixture(args)).stdout) as { sessionId: string; score: number }[];
+    expect(first.length).toBeGreaterThan(1);
+    expect(first.every((r) => typeof r.score === 'number' && Number.isFinite(r.score))).toBe(true);
+    // The tilt moves with the clock, so scores may differ by a hair between
+    // runs seconds apart; the ranking they produce must not.
+    expect(second.map((r) => r.sessionId)).toEqual(first.map((r) => r.sessionId));
+  });
+
   it('--keyword-only is accepted and stays keyword', () => {
     const result = run(withFixture(['recording videos', '--keyword-only', '--json']));
     expect(result.status).toBe(0);

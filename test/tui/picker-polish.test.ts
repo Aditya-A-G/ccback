@@ -17,10 +17,12 @@ import {
   footerHints,
   FOOTER_FULL_WIDTH,
   formatRow,
+  nextOrder,
   TITLE_COLUMN_MAX,
   TITLE_COLUMN_MIN,
   titleColumnWidth,
 } from '../../src/tui/format.js';
+import type { MatchOrder } from '../../src/tui/deps.js';
 import { KEY, makeMatch, makeResult, NOW, plainFrame, startTui, tick } from './helpers.js';
 
 const squash = (text: string): string => plainFrame(text).replace(/\s+/g, ' ');
@@ -64,10 +66,10 @@ describe('the footer', () => {
     hasQuery: true,
     hasCurrent: true,
     canOpenBrowser: true,
-    sort: 'relevance',
+    order: 'best',
   });
 
-  it('fits every hint, sort included, at 80 and 96 columns', () => {
+  it('fits every hint, the order included, at 80 and 96 columns', () => {
     for (const width of [FOOTER_FULL_WIDTH, 96, 120]) {
       const line = fitFooter(full, width);
       expect(displayLength(line), `width ${width}`).toBeLessThanOrEqual(width);
@@ -85,7 +87,7 @@ describe('the footer', () => {
       hasQuery: true,
       hasCurrent: true,
       canOpenBrowser: true,
-      sort: 'recent',
+      order: 'newest',
     });
     const line = fitFooter(expanded, FOOTER_FULL_WIDTH);
     for (const hint of expanded) expect(line).toContain(hint.text);
@@ -96,14 +98,14 @@ describe('the footer', () => {
     for (const width of [FOOTER_FULL_WIDTH, 81, 100]) {
       expect(fitFooter(full, width)).toContain('^R');
     }
-    // Narrower than that, the sort hint is the first to go.
+    // Narrower than that, the order hint is the first to go.
     expect(fitFooter(full, 60)).not.toContain('^R');
     for (const width of [120, 96, 80, 70, 60, 40, 24, 10, 3, 1]) {
       expect(displayLength(fitFooter(full, width)), `width ${width}`).toBeLessThanOrEqual(width);
     }
   });
 
-  it('names the order Ctrl+R will switch to', () => {
+  it('names the order Ctrl+R will switch to, all the way round the cycle', () => {
     const state = {
       expanded: false,
       hasMatches: false,
@@ -112,8 +114,30 @@ describe('the footer', () => {
       hasCurrent: true,
       canOpenBrowser: false,
     } as const;
-    expect(footerHints({ ...state, sort: 'relevance' }).some((h) => h.text === '^R recent')).toBe(true);
-    expect(footerHints({ ...state, sort: 'recent' }).some((h) => h.text === '^R best')).toBe(true);
+    const hint = (order: MatchOrder): string | undefined =>
+      footerHints({ ...state, order }).find((h) => h.text.startsWith('^R '))?.text;
+    expect(hint('best')).toBe('^R newest');
+    expect(hint('newest')).toBe('^R oldest');
+    expect(hint('oldest')).toBe('^R best');
+    // Three presses come back to where they started.
+    expect(nextOrder(nextOrder(nextOrder('best')))).toBe('best');
+  });
+
+  it('keeps the longest order hint inside the 80-column footer', () => {
+    for (const order of ['best', 'newest', 'oldest'] as const) {
+      const hints = footerHints({
+        expanded: false,
+        hasMatches: true,
+        hasPreview: true,
+        hasQuery: true,
+        hasCurrent: true,
+        canOpenBrowser: true,
+        order,
+      });
+      const line = fitFooter(hints, FOOTER_FULL_WIDTH);
+      expect(displayLength(line), order).toBeLessThanOrEqual(FOOTER_FULL_WIDTH);
+      for (const h of hints) expect(line, order).toContain(h.text);
+    }
   });
 });
 

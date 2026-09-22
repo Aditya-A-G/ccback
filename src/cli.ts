@@ -25,6 +25,7 @@ import {
   sanitizeLine,
   search,
   semanticStatus,
+  sessionSortFor,
   SIGINT_EXIT_CODE,
   status,
   sync,
@@ -32,7 +33,7 @@ import {
   UserError,
   withInterrupt,
 } from './core/index.js';
-import type { KeywordOnlySource, SearchMode, SessionResult, SortOrder } from './core/index.js';
+import type { KeywordOnlySource, MatchOrder, SearchMode, SessionResult } from './core/index.js';
 
 // The TUI and web front ends are imported lazily so `--json` never pays for
 // Ink or the server.
@@ -40,7 +41,13 @@ import type { KeywordOnlySource, SearchMode, SessionResult, SortOrder } from './
 /** Options every command understands. The TUI and web entry points take the same shape. */
 export interface CommonOptions {
   mode: SearchMode;
-  sort: SortOrder;
+  /**
+   * The one combined order: `best` is the ranking, `newest` and `oldest` are
+   * chronological. The picker starts in it and cycles with Ctrl+R; `-p` and
+   * `--json` have only sessions to order, so both chronological orders mean
+   * "newest session first" there.
+   */
+  sort: MatchOrder;
   limit: number;
   cwdPrefix?: string | undefined;
   since?: string | undefined;
@@ -85,12 +92,13 @@ export const HELP = `${APP_NAME} — find any Claude Code session by what was sa
 
 Usage
   Any word that is not a known flag is search text, as is everything after --.
+  Best match ranks by words and meaning, preferring recent activity when close.
 
 Options
   -w, --web            open the browser UI (reuses one already running)
   -p, --print          plain results instead of the picker (auto when piped)
       --json           machine-readable results
-      --sort recent    order by last activity instead of best match
+      --sort best|recent|oldest   best match, newest or oldest first
       --stats          what the index holds, and where
       --reindex [--full]      update the index; --full rebuilds it from scratch
       --keyword-only          skip smart search for this run
@@ -582,7 +590,7 @@ async function runSearch(query: string, common: CommonOptions): Promise<number> 
         // Nothing here may reach the network: the model is loaded from the
         // local cache or not at all.
         localOnly: true,
-        sort: common.sort,
+        sort: sessionSortFor(common.sort),
         limit: common.limit,
         cwdPrefix: common.cwdPrefix,
         since: common.since,
@@ -828,10 +836,20 @@ function parseMode(value: string | undefined, keywordOnly: KeywordOnlySource | n
   throw new UserError(`Unknown --mode: ${quoted(value)}. Use auto, keyword, semantic or hybrid.`);
 }
 
-function parseSort(value: string | undefined): SortOrder {
-  if (value === undefined) return 'relevance';
-  if (value === 'relevance' || value === 'recent') return value;
-  throw new UserError(`Unknown --sort: ${quoted(value)}. Use relevance or recent.`);
+/**
+ * `--sort` names the order in one word: `best` (the ranking), `recent`
+ * (newest first) or `oldest`. The picker cycles through the same three with
+ * Ctrl+R and applies them to the matches inside a session as well.
+ *
+ * `relevance` and `newest` are the names the footer and the older releases
+ * used; both still work and neither is documented.
+ */
+function parseSort(value: string | undefined): MatchOrder {
+  if (value === undefined) return 'best';
+  if (value === 'best' || value === 'relevance') return 'best';
+  if (value === 'recent' || value === 'newest') return 'newest';
+  if (value === 'oldest') return 'oldest';
+  throw new UserError(`Unknown --sort: ${quoted(value)}. Use best, recent or oldest.`);
 }
 
 /**
