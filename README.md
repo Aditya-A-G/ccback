@@ -14,27 +14,6 @@ Works on macOS, Linux and Windows. Needs Node 22 or newer.
 npm install -g ccback          # gives you `ccback` and the short `ccb`
 ```
 
-That includes the libraries that run the embedding model on your machine, so the install is about 140 MB to download and about 520 MB on disk. They ship binaries for macOS, Linux and Windows in one package; only yours is ever loaded.
-
-To use keyword search alone, run `ccback --keyword-only`, or set `CCBACK_KEYWORD_ONLY=1` in your shell to make that permanent: no model is downloaded and nothing is embedded. A global install still carries the libraries, because `npm install -g` ignores `--omit=optional`; in a project-local install, `npm install ccback --omit=optional` does skip them and brings the install down to about 40 MB.
-
-### A shorter command
-
-Want something shorter to type? `ccback --alias` offers to add `alias sf=ccback` to your shell startup file, on bash, zsh and fish. Pick your own name with `ccback --alias qq`.
-
-Before it offers, it makes sure the name is free:
-
-- not a program on your `PATH`, not a shell builtin or reserved word, and not already an alias, abbreviation or function in your startup file;
-- on fish, not a file in your fish functions directory either (`~/.config/fish/functions`, or under `XDG_CONFIG_HOME` when you have set one).
-
-It then shows you the exact block it would append — a blank line, a comment saying ccback added it, and the alias — and asks before adding it, unless you pass `--yes`. What it will and will not do:
-
-- it writes to the startup file your shell really reads, so `ZDOTDIR` and `XDG_CONFIG_HOME` are honoured; if either points outside your home directory it says so and prints the line instead of writing anywhere;
-- nothing else in the file is touched, and it never follows a symlink out of your home directory;
-- if it cannot write the file, it prints the line for you to paste;
-- piped or scripted, it prints the line and changes nothing, unless you pass `--yes`, which answers the question and skips it while still running every check;
-- under a shell it does not know, and on Windows, it prints the line to add instead of guessing at a file.
-
 ## Use it
 
 ```sh
@@ -72,6 +51,29 @@ Two things run at once: keyword search (SQLite FTS5, BM25, stemming) and semanti
 The first time you open the picker or the browser UI, ccback downloads a small embedding model (`all-MiniLM-L6-v2`, about 23 MB) and starts indexing meaning in the background. Keyword results are there from the first keystroke and quietly get better as it finishes; on a large history the first pass takes a few minutes. After that, a day of new conversation is a top-up of a few seconds, because unchanged text keeps the embeddings it already had.
 
 With `--keyword-only` or `CCBACK_KEYWORD_ONLY=1`, or when the embedding libraries are not installed, none of that happens and nothing nags you about it: keyword search is the whole tool.
+
+## Install options
+
+The default install includes the libraries that run the embedding model on your machine, so it is about 140 MB to download and about 520 MB on disk. They ship binaries for macOS, Linux and Windows in one package; only yours is ever loaded.
+
+To use keyword search alone, run `ccback --keyword-only`, or set `CCBACK_KEYWORD_ONLY=1` in your shell to make that permanent: no model is downloaded and nothing is embedded. A global install still carries the libraries, because `npm install -g` ignores `--omit=optional`; in a project-local install, `npm install ccback --omit=optional` does skip them and brings the install down to about 40 MB.
+
+### A shorter command
+
+Want something shorter to type? `ccback --alias` offers to add `alias sf=ccback` to your shell startup file, on bash, zsh and fish. Pick your own name with `ccback --alias qq`.
+
+Before it offers, it makes sure the name is free:
+
+- not a program on your `PATH`, not a shell builtin or reserved word, and not already an alias, abbreviation or function in your startup file;
+- on fish, not a file in your fish functions directory either (`~/.config/fish/functions`, or under `XDG_CONFIG_HOME` when you have set one).
+
+It then shows you the exact block it would append — a blank line, a comment saying ccback added it, and the alias — and asks before adding it, unless you pass `--yes`. What it will and will not do:
+
+- it writes to the startup file your shell really reads, so `ZDOTDIR` and `XDG_CONFIG_HOME` are honoured; if either points outside your home directory it says so and prints the line instead of writing anywhere;
+- nothing else in the file is touched, and it never follows a symlink out of your home directory;
+- if it cannot write the file, it prints the line for you to paste;
+- piped or scripted, it prints the line and changes nothing, unless you pass `--yes`, which answers the question and skips it while still running every check;
+- under a shell it does not know, and on Windows, it prints the line to add instead of guessing at a file.
 
 ## Everything else
 
