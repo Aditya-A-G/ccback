@@ -222,8 +222,7 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
     const source = `
       import { withInterrupt, SIGINT_EXIT_CODE } from './dist/core/index.js';
       const keepAlive = setInterval(() => {}, 1000);
-      process.stdout.write('ready\\n');
-      const outcome = await withInterrupt(() => new Promise(() => {}));
+      const outcome = await withInterrupt(() => new Promise(() => { process.stdout.write('ready\\n'); }));
       clearInterval(keepAlive);
       process.exit(outcome.interrupted ? SIGINT_EXIT_CODE : 0);
     `;
@@ -236,8 +235,9 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
     const source = `
       import { withInterrupt } from './dist/core/index.js';
       const keepAlive = setInterval(() => {}, 1000);
-      process.stdout.write('ready\\n');
-      await withInterrupt(() => new Promise(() => {}));
+      // 'ready' is said from inside the guarded work, so the Ctrl+C handler
+      // is in place before the test sends the signal.
+      await withInterrupt(() => new Promise(() => { process.stdout.write('ready\\n'); }));
       process.stdout.write('shutting-down\\n');
       // A shutdown that never finishes: only a second Ctrl+C can end this.
       await new Promise(() => {});
