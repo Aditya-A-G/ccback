@@ -1,5 +1,5 @@
 {
-  "name": "ccfind",
+  "name": "ccback",
   "version": "0.1.0",
   "description": "Find any Claude Code session by what was said in it, and jump straight back into it.",
   "keywords": [
@@ -17,8 +17,8 @@
     "node": ">=22"
   },
   "bin": {
-    "ccfind": "dist/cli.js",
-    "ccf": "dist/cli.js"
+    "ccback": "dist/cli.js",
+    "ccb": "dist/cli.js"
   },
   "main": "dist/core/index.js",
   "types": "dist/core/index.d.ts",
@@ -60,11 +60,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Aditya-A-G/ccfind.git"
+    "url": "git+https://github.com/Aditya-A-G/ccback.git"
   },
-  "homepage": "https://github.com/Aditya-A-G/ccfind#readme",
+  "homepage": "https://github.com/Aditya-A-G/ccback#readme",
   "bugs": {
-    "url": "https://github.com/Aditya-A-G/ccfind/issues"
+    "url": "https://github.com/Aditya-A-G/ccback/issues"
   },
   "author": "Aditya Ghadge"
 }

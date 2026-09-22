@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something ccfind does that it should not, or does not do that it should
+about: Something ccback does that it should not, or does not do that it should
 labels: bug
 ---
 
@@ -10,8 +10,8 @@ share.
 
 - Operating system and version:
 - Node version (`node --version`):
-- ccfind version (`ccfind --version`):
-- `ccfind --stats` output, with paths redacted:
+- ccback version (`ccback --version`):
+- `ccback --stats` output, with paths redacted:
 
 **What you did**
 

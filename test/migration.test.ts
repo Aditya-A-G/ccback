@@ -121,7 +121,7 @@ async function writeV1Database(dbPath: string): Promise<void> {
 
 describe('an index written by schema version 1', () => {
   it('is migrated in place, keeping every row and every embedding', async () => {
-    const home = tempDir('ccfind-v1-');
+    const home = tempDir('ccback-v1-');
     const dbPath = path.join(home, 'index.db');
     await writeV1Database(dbPath);
 
@@ -232,7 +232,7 @@ async function writeV2Database(dbPath: string): Promise<void> {
 
 describe('an index written by schema version 2 (incremental embeddings)', () => {
   it('gains chunk digests in place, and every embedding survives', async () => {
-    const home = tempDir('ccfind-v2-');
+    const home = tempDir('ccback-v2-');
     const dbPath = path.join(home, 'index.db');
     await writeV2Database(dbPath);
 
@@ -268,13 +268,13 @@ describe('an index written by schema version 2 (incremental embeddings)', () => 
   });
 
   it('carries those preserved embeddings across the next re-index of the session', async () => {
-    const home = tempDir('ccfind-v2-carry-');
+    const home = tempDir('ccback-v2-carry-');
     const dbPath = path.join(home, 'index.db');
     await writeV2Database(dbPath);
 
     // A real transcript holding the same two messages, plus one new one: the
     // first sync after an upgrade, with a day of fresh conversation in it.
-    const projects = tempDir('ccfind-v2-carry-projects-');
+    const projects = tempDir('ccback-v2-carry-projects-');
     const file = writeSession(projects, '-tmp-video', 'video', [
       userMessage(CHUNK_TEXT, { cwd: '/tmp/video', timestamp: '2026-09-10T09:00:00.000Z' }),
       assistantMessage(SECOND_CHUNK_TEXT, { cwd: '/tmp/video', timestamp: '2026-09-10T10:00:00.000Z' }),
@@ -301,7 +301,7 @@ describe('an index written by schema version 2 (incremental embeddings)', () => 
 describe('an index nobody can interpret', () => {
   // Must stay the first rebuild in this file: the warning is once per process.
   it('tells the user once what the rebuild cost, then works', async () => {
-    const home = tempDir('ccfind-v0-');
+    const home = tempDir('ccback-v0-');
     const dbPath = path.join(home, 'index.db');
     await writeV1Database(dbPath);
     // Tables, but no version: the shape of a pre-versioning or half-written index.
@@ -339,7 +339,7 @@ describe('an index nobody can interpret', () => {
   });
 
   it('recovers a database holding a view named like one of our tables', () => {
-    const home = tempDir('ccfind-view-');
+    const home = tempDir('ccback-view-');
     const dbPath = path.join(home, 'index.db');
     const raw = new Database(dbPath);
     raw.exec(`CREATE TABLE junk(a); CREATE VIEW sessions AS SELECT 1 AS id; CREATE VIEW meta AS SELECT 1 AS key;`);
@@ -353,7 +353,7 @@ describe('an index nobody can interpret', () => {
   });
 
   it('does not die with `no such column` on a versionless index', () => {
-    const home = tempDir('ccfind-nocol-');
+    const home = tempDir('ccback-nocol-');
     const dbPath = path.join(home, 'index.db');
     // Tables of some ancestor shape, no `meta` row to say which: the sessions
     // table has no `last_ts`, which is what every query orders by.
@@ -363,10 +363,10 @@ describe('an index nobody can interpret', () => {
     raw.prepare(`INSERT INTO sessions(id, cwd, title) VALUES ('old', '/tmp/old', 'An older index')`).run();
     raw.close();
 
-    const projects = tempDir('ccfind-nocol-projects-');
+    const projects = tempDir('ccback-nocol-projects-');
     const result = spawnSync(process.execPath, [cliPath, 'anything', '--projects-dir', projects], {
       encoding: 'utf8',
-      env: childEnv({ CCFIND_HOME: home }),
+      env: childEnv({ CCBACK_HOME: home }),
     });
     expect([result.status, result.stderr]).toEqual([0, result.stderr]);
     expect(result.stderr).not.toContain('no such column');
@@ -374,7 +374,7 @@ describe('an index nobody can interpret', () => {
   });
 
   it('turns any SQLite failure during open into one actionable line, exit 2', () => {
-    const home = tempDir('ccfind-broken-');
+    const home = tempDir('ccback-broken-');
     const dbPath = path.join(home, 'index.db');
     // Version 1, but the table the v1→v2 step has to alter is not there.
     const raw = new Database(dbPath);
@@ -384,7 +384,7 @@ describe('an index nobody can interpret', () => {
 
     const result = spawnSync(process.execPath, [cliPath, 'anything', '--projects-dir', home], {
       encoding: 'utf8',
-      env: childEnv({ CCFIND_HOME: home }),
+      env: childEnv({ CCBACK_HOME: home }),
     });
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('is unusable');
@@ -404,7 +404,7 @@ describe('opening a database that cannot do WAL', () => {
   });
 
   it('still opens a normal file in WAL', () => {
-    const home = tempDir('ccfind-wal-');
+    const home = tempDir('ccback-wal-');
     const db = openDatabase(path.join(home, 'index.db'));
     expect(db.pragma('journal_mode', { simple: true })).toBe('wal');
     db.close();

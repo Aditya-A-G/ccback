@@ -1,7 +1,7 @@
 /**
  * The browser UI under keyword-only.
  *
- * `ccfind -w --keyword-only` has to carry the switch all the way into the
+ * `ccback -w --keyword-only` has to carry the switch all the way into the
  * server, or the background embedding job starts like any other run and the
  * model is downloaded anyway. So the server refuses to embed, forces every
  * search to keyword whatever `/api/search?mode=` asks for, says `disabled` in
@@ -195,7 +195,7 @@ describe('a normal server, for comparison', () => {
  * The flag has to survive the whole way from the command line to the routes,
  * which is the part no in-process test can prove.
  */
-describe('ccfind -w --keyword-only, end to end', () => {
+describe('ccback -w --keyword-only, end to end', () => {
   it('serves a keyword-only server and leaves on Ctrl-C', async () => {
     if (!fs.existsSync(cliPath)) throw new Error('dist/cli.js is missing; run "npm run build" first');
     const { fixture } = await indexedFixture();
@@ -203,7 +203,7 @@ describe('ccfind -w --keyword-only, end to end', () => {
     const child = spawn(
       process.execPath,
       [cliPath, '-w', '--keyword-only', '--port', '0', '--no-open', '--projects-dir', fixture.projectsDir],
-      { env: childEnv({ CCFIND_HOME: fixture.home }), stdio: ['ignore', 'pipe', 'pipe'] },
+      { env: childEnv({ CCBACK_HOME: fixture.home }), stdio: ['ignore', 'pipe', 'pipe'] },
     );
     const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
       child.on('exit', (code, signal) => resolve({ code, signal }));

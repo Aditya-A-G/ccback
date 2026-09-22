@@ -1,5 +1,5 @@
 /**
- * `ccfind --alias` promises it checked that nothing on this machine already
+ * `ccback --alias` promises it checked that nothing on this machine already
  * answers to the name. The check has to be worth that sentence.
  *
  * Everything here runs against a temp home. Nothing ever touches a real shell
@@ -24,8 +24,8 @@ interface Harness {
 }
 
 function harness(overrides: Partial<AliasEnv> & { answer?: string } = {}): Harness {
-  const home = tempDir('ccfind-clash-home-');
-  const emptyPath = tempDir('ccfind-clash-path-');
+  const home = tempDir('ccback-clash-home-');
+  const emptyPath = tempDir('ccback-clash-path-');
   const written: string[] = [];
   const env: AliasEnv = {
     home,
@@ -69,31 +69,31 @@ async function accepts(contents: string, name = 'sf'): Promise<string> {
 describe('definedInFile', () => {
   it('finds a name assigned anywhere on a multi-assignment alias line', () => {
     expect(definedInFile('alias ll=ls sf=/x\n', 'sf', 'zsh')).toBe(true);
-    expect(definedInFile("alias ll='ls -l' sf=ccfind\n", 'sf', 'zsh')).toBe(true);
+    expect(definedInFile("alias ll='ls -l' sf=ccback\n", 'sf', 'zsh')).toBe(true);
     expect(definedInFile('alias sf=x ll=ls\n', 'sf', 'zsh')).toBe(true);
   });
 
   it('sees through quoting and leading option flags', () => {
-    expect(definedInFile("alias sf='ccfind --json'\n", 'sf', 'zsh')).toBe(true);
-    expect(definedInFile('alias sf="ccfind"\n', 'sf', 'zsh')).toBe(true);
+    expect(definedInFile("alias sf='ccback --json'\n", 'sf', 'zsh')).toBe(true);
+    expect(definedInFile('alias sf="ccback"\n', 'sf', 'zsh')).toBe(true);
     expect(definedInFile('alias -g sf=x\n', 'sf', 'zsh')).toBe(true);
     expect(definedInFile('  alias   -g   sf=x\n', 'sf', 'zsh')).toBe(true);
   });
 
   it('is not fooled by the name appearing inside somebody else’s value', () => {
     expect(definedInFile("alias x='echo sf=y'\n", 'sf', 'zsh')).toBe(false);
-    expect(definedInFile('# alias sf=ccfind\n', 'sf', 'zsh')).toBe(false);
+    expect(definedInFile('# alias sf=ccback\n', 'sf', 'zsh')).toBe(false);
     expect(definedInFile('alias sfx=y\n', 'sf', 'zsh')).toBe(false);
     expect(definedInFile('alias xsf=y\n', 'sf', 'zsh')).toBe(false);
   });
 
   it('does not count a line that is not valid shell', () => {
-    // `alias  sf = ccfind` defines nothing; it is a syntax error waiting to happen.
-    expect(definedInFile('alias  sf = ccfind\n', 'sf', 'zsh')).toBe(false);
+    // `alias  sf = ccback` defines nothing; it is a syntax error waiting to happen.
+    expect(definedInFile('alias  sf = ccback\n', 'sf', 'zsh')).toBe(false);
   });
 
   it('finds shell functions in every spelling', () => {
-    expect(definedInFile('sf() {\n  ccfind "$@"\n}\n', 'sf', 'zsh')).toBe(true);
+    expect(definedInFile('sf() {\n  ccback "$@"\n}\n', 'sf', 'zsh')).toBe(true);
     expect(definedInFile('sf ()\n{\n}\n', 'sf', 'zsh')).toBe(true);
     expect(definedInFile('function sf {\n}\n', 'sf', 'zsh')).toBe(true);
     expect(definedInFile('function sf() {\n}\n', 'sf', 'zsh')).toBe(true);
@@ -105,11 +105,11 @@ describe('definedInFile', () => {
   });
 
   it('understands fish syntax', () => {
-    expect(definedInFile('alias sf ccfind\n', 'sf', 'fish')).toBe(true);
-    expect(definedInFile('alias sf=ccfind\n', 'sf', 'fish')).toBe(true);
-    expect(definedInFile('abbr sf ccfind\n', 'sf', 'fish')).toBe(true);
-    expect(definedInFile('abbr -a sf ccfind\n', 'sf', 'fish')).toBe(true);
-    expect(definedInFile('abbr --position command sf ccfind\n', 'sf', 'fish')).toBe(true);
+    expect(definedInFile('alias sf ccback\n', 'sf', 'fish')).toBe(true);
+    expect(definedInFile('alias sf=ccback\n', 'sf', 'fish')).toBe(true);
+    expect(definedInFile('abbr sf ccback\n', 'sf', 'fish')).toBe(true);
+    expect(definedInFile('abbr -a sf ccback\n', 'sf', 'fish')).toBe(true);
+    expect(definedInFile('abbr --position command sf ccback\n', 'sf', 'fish')).toBe(true);
     expect(definedInFile('function sf --description x\n', 'sf', 'fish')).toBe(true);
     expect(definedInFile('abbr other sf\n', 'sf', 'fish')).toBe(false);
   });
@@ -130,7 +130,7 @@ describe('names the tool refuses outright', () => {
   });
 
   it('refuses its own command names', async () => {
-    for (const name of ['ccfind', 'ccf']) {
+    for (const name of ['ccback', 'ccb']) {
       const h = harness();
       await expect(runAlias(name, h.env)).rejects.toSatisfy(isUserError);
       expect(fs.readdirSync(h.home)).toEqual([]);
@@ -140,7 +140,7 @@ describe('names the tool refuses outright', () => {
   it('still allows a perfectly ordinary name', async () => {
     const h = harness();
     await expect(runAlias('sf', h.env)).resolves.toBe(0);
-    expect(fs.readFileSync(rc(h.home), 'utf8')).toContain('alias sf=ccfind');
+    expect(fs.readFileSync(rc(h.home), 'utf8')).toContain('alias sf=ccback');
   });
 });
 
@@ -158,7 +158,7 @@ describe('an existing definition in the startup file', () => {
   });
 
   it('appends after an unrelated line that merely mentions the name', async () => {
-    expect(await accepts("alias x='echo sf=y'\n")).toContain('alias sf=ccfind');
+    expect(await accepts("alias x='echo sf=y'\n")).toContain('alias sf=ccback');
   });
 });
 
@@ -180,7 +180,7 @@ describe('fish', () => {
     const h = fishHarness();
     const config = path.join(h.home, '.config', 'fish', 'config.fish');
     fs.mkdirSync(path.dirname(config), { recursive: true });
-    fs.writeFileSync(config, 'abbr -a sf ccfind\n');
+    fs.writeFileSync(config, 'abbr -a sf ccback\n');
     await expect(runAlias('sf', h.env)).rejects.toSatisfy(isUserError);
   });
 
@@ -188,7 +188,7 @@ describe('fish', () => {
     const h = fishHarness();
     await expect(runAlias('sf', h.env)).resolves.toBe(0);
     const config = path.join(h.home, '.config', 'fish', 'config.fish');
-    expect(fs.readFileSync(config, 'utf8')).toContain('alias sf ccfind');
+    expect(fs.readFileSync(config, 'utf8')).toContain('alias sf ccback');
   });
 });
 
@@ -198,7 +198,7 @@ describe('the file it writes to', () => {
     fs.writeFileSync(rc(h.home), 'export A=1\r\nexport B=2\r\n');
     await runAlias('sf', h.env);
     const after = fs.readFileSync(rc(h.home), 'utf8');
-    expect(after).toContain('\r\nalias sf=ccfind\r\n');
+    expect(after).toContain('\r\nalias sf=ccback\r\n');
     expect(after.replace(/\r\n/g, '')).not.toContain('\n');
   });
 
@@ -208,7 +208,7 @@ describe('the file it writes to', () => {
     await runAlias('sf', h.env);
     const after = fs.readFileSync(rc(h.home), 'utf8');
     expect(after.startsWith('export A=1\n')).toBe(true);
-    expect(after).toContain('alias sf=ccfind\n');
+    expect(after).toContain('alias sf=ccback\n');
     // The original line is still its own line, not glued to a comment.
     expect(after.split('\n')[0]).toBe('export A=1');
   });
@@ -223,13 +223,13 @@ describe('the file it writes to', () => {
     fs.symlinkSync(real, rc(h.home));
 
     await expect(runAlias('sf', h.env)).resolves.toBe(0);
-    expect(fs.readFileSync(real, 'utf8')).toContain('alias sf=ccfind');
+    expect(fs.readFileSync(real, 'utf8')).toContain('alias sf=ccback');
     expect(fs.lstatSync(rc(h.home)).isSymbolicLink()).toBe(true);
   });
 
   it.skipIf(isWindows)('refuses a symlink pointing outside the home directory', async () => {
     const h = harness();
-    const outside = tempDir('ccfind-clash-outside-');
+    const outside = tempDir('ccback-clash-outside-');
     const target = path.join(outside, 'zshrc');
     fs.writeFileSync(target, '# not mine\n');
     fs.symlinkSync(target, rc(h.home));
@@ -248,7 +248,7 @@ describe('the file it writes to', () => {
   });
 
   it('never creates a missing home directory', async () => {
-    const parent = tempDir('ccfind-clash-nohome-');
+    const parent = tempDir('ccback-clash-nohome-');
     const home = path.join(parent, 'not-created');
     const h = harness({ home });
     await expect(runAlias('sf', h.env)).rejects.toSatisfy(isUserError);
@@ -270,7 +270,7 @@ describe('the file it writes to', () => {
         message = (err as Error).message;
       }
       expect(message.split('\n')).toHaveLength(1);
-      expect(message).toContain('alias sf=ccfind');
+      expect(message).toContain('alias sf=ccback');
       expect(fs.readFileSync(rc(h.home), 'utf8')).toBe('# mine\n');
     } finally {
       fs.chmodSync(rc(h.home), 0o644);
@@ -297,7 +297,7 @@ describe('behaviours that must not regress', () => {
     const h = harness({ isTty: false, assumeYes: false });
     await expect(runAlias('sf', h.env)).resolves.toBe(0);
     expect(fs.existsSync(rc(h.home))).toBe(false);
-    expect(h.out()).toContain('alias sf=ccfind');
+    expect(h.out()).toContain('alias sf=ccback');
   });
 
   it('is idempotent', async () => {
@@ -314,7 +314,7 @@ describe('a definition the old check could not see', () => {
   it('finds one written across a line continuation', () => {
     expect(definedInFile('alias \\\nsf=ls\n', 'sf', 'zsh')).toBe(true);
     expect(definedInFile('alias \\\r\nsf=ls\r\n', 'sf', 'zsh')).toBe(true);
-    expect(definedInFile('alias ll=ls \\\n  sf=ccfind\n', 'sf', 'zsh')).toBe(true);
+    expect(definedInFile('alias ll=ls \\\n  sf=ccback\n', 'sf', 'zsh')).toBe(true);
     // And still says no when the continuation is inside somebody's value.
     expect(definedInFile("alias x='echo \\\nsf=y'\n", 'sf', 'zsh')).toBe(false);
   });
@@ -343,7 +343,7 @@ describe('a definition the old check could not see', () => {
 });
 
 describe('a name that is taken outside any startup file', () => {
-  const binDir = tempDir('ccfind-clash-realbin-');
+  const binDir = tempDir('ccback-clash-realbin-');
   fs.writeFileSync(path.join(binDir, 'ls'), '#!/bin/sh\necho hi\n', { mode: 0o755 });
 
   it('is refused under an unknown shell and on Windows, not printed as advice', async () => {
@@ -389,7 +389,7 @@ describe('a home directory that is not one', () => {
       }
       expect(message, `home=${JSON.stringify(home)}`).not.toBe('');
       expect(message.split('\n')).toHaveLength(1);
-      expect(message).toContain('alias sf=ccfind');
+      expect(message).toContain('alias sf=ccback');
     }
     expect(fs.existsSync('/.zshrc')).toBe(false);
   });
@@ -398,15 +398,15 @@ describe('a home directory that is not one', () => {
 describe('the write itself', () => {
   it.skipIf(isWindows)('does not follow a symlink that appears after the target was resolved', async () => {
     const h = harness();
-    const outside = tempDir('ccfind-clash-swap-');
+    const outside = tempDir('ccback-clash-swap-');
     const stolen = path.join(outside, 'zshrc');
     fs.writeFileSync(stolen, '# not mine\n');
 
     // Exactly the race: the path is checked, and only then replaced by a link.
-    const destination = resolveRcTarget(rc(h.home), h.home, 'alias sf=ccfind');
+    const destination = resolveRcTarget(rc(h.home), h.home, 'alias sf=ccback');
     fs.symlinkSync(stolen, destination);
 
-    expect(() => appendAlias(destination, '\n# ccfind short command\nalias sf=ccfind\n', 'alias sf=ccfind')).toThrow(
+    expect(() => appendAlias(destination, '\n# ccback short command\nalias sf=ccback\n', 'alias sf=ccback')).toThrow(
       /Could not write to/,
     );
     expect(fs.readFileSync(stolen, 'utf8')).toBe('# not mine\n');
@@ -414,10 +414,10 @@ describe('the write itself', () => {
 
   it('still creates the file and appends through the one handle', () => {
     const h = harness();
-    const destination = resolveRcTarget(rc(h.home), h.home, 'alias sf=ccfind');
-    appendAlias(destination, '\n# ccfind short command\nalias sf=ccfind\n', 'alias sf=ccfind');
-    appendAlias(destination, '\n# second\n', 'alias sf=ccfind');
+    const destination = resolveRcTarget(rc(h.home), h.home, 'alias sf=ccback');
+    appendAlias(destination, '\n# ccback short command\nalias sf=ccback\n', 'alias sf=ccback');
+    appendAlias(destination, '\n# second\n', 'alias sf=ccback');
     const after = fs.readFileSync(destination, 'utf8');
-    expect(after).toBe('\n# ccfind short command\nalias sf=ccfind\n\n# second\n');
+    expect(after).toBe('\n# ccback short command\nalias sf=ccback\n\n# second\n');
   });
 });

@@ -9,7 +9,7 @@
  *
  * `createDefaultEmbedder` is the only door to `@huggingface/transformers` in
  * the whole tool, so a counter around it is that count. The real one is left
- * underneath, and `CCFIND_NO_MODEL=1` is still set, so no test here can reach
+ * underneath, and `CCBACK_NO_MODEL=1` is still set, so no test here can reach
  * the network even if the counter were wrong.
  */
 import fs from 'node:fs';
@@ -80,7 +80,7 @@ async function cli(args: string[], env: Record<string, string | undefined> = {})
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
   };
-  set('CCFIND_HOME', fixture.home);
+  set('CCBACK_HOME', fixture.home);
   set(KEYWORD_ONLY_ENV, undefined);
   for (const [key, value] of Object.entries(env)) set(key, value);
 
@@ -115,7 +115,7 @@ beforeEach(() => {
   fixture = freshFixture();
 });
 
-describe('CCFIND_KEYWORD_ONLY', () => {
+describe('CCBACK_KEYWORD_ONLY', () => {
   it('reads every spelling of yes and no, in any case', () => {
     for (const yes of ['1', 'true', 'TRUE', 'Yes', ' yes ']) expect(keywordOnlyFromEnv(yes), yes).toBe(true);
     for (const no of [undefined, '', '0', 'false', 'NO', 'No']) expect(keywordOnlyFromEnv(no), String(no)).toBe(false);
@@ -149,7 +149,7 @@ describe('CCFIND_KEYWORD_ONLY', () => {
 /** The flag and the variable have to be the same thing everywhere. */
 const BOTH_WAYS: { name: string; args: string[]; env: Record<string, string> }[] = [
   { name: '--keyword-only', args: ['--keyword-only'], env: {} },
-  { name: 'CCFIND_KEYWORD_ONLY=1', args: [], env: { [KEYWORD_ONLY_ENV]: '1' } },
+  { name: 'CCBACK_KEYWORD_ONLY=1', args: [], env: { [KEYWORD_ONLY_ENV]: '1' } },
 ];
 
 describe('a scripted search', () => {
@@ -183,7 +183,7 @@ describe('--reindex', () => {
   it('still tries to set smart search up when neither switch is set', async () => {
     const run = await cli(['--reindex']);
     expect(run.code).toBe(0);
-    // One load attempt, which `CCFIND_NO_MODEL=1` then refuses — the point is
+    // One load attempt, which `CCBACK_NO_MODEL=1` then refuses — the point is
     // that the attempt is made at all on the normal path.
     expect(loads.length).toBeGreaterThan(0);
     expect(run.out).toContain('Smart search could not start');
@@ -225,7 +225,7 @@ describe('--stats', () => {
   it('says which switch disabled smart search: the variable', async () => {
     const run = await cli(['--stats'], { [KEYWORD_ONLY_ENV]: 'yes' });
     expect(run.code).toBe(0);
-    expect(run.out).toMatch(/smart search\s+disabled \(CCFIND_KEYWORD_ONLY\)/);
+    expect(run.out).toMatch(/smart search\s+disabled \(CCBACK_KEYWORD_ONLY\)/);
   });
 
   it('says nothing of the sort when neither switch is set', async () => {

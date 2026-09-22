@@ -175,7 +175,7 @@ export function corruptIndexMessage(dbPath: string, detail: string): string {
 
 /** One line for the only other thing SQLite says at open time that is not damage. */
 export function busyIndexMessage(dbPath: string): string {
-  return `The search index at ${dbPath} is still in use by another ccfind process; try again in a moment.`;
+  return `The search index at ${dbPath} is still in use by another ccback process; try again in a moment.`;
 }
 
 const CORRUPT_CODES = new Set(['SQLITE_NOTADB', 'SQLITE_CORRUPT', 'SQLITE_CORRUPT_VTAB', 'SQLITE_FORMAT']);
@@ -286,7 +286,7 @@ function migrate(db: Db, dbPath: string): void {
     if (version === SCHEMA_VERSION) return; // another process got there first
     if (version > SCHEMA_VERSION) {
       throw new UserError(
-        `The search index at ${dbPath} was written by a newer version of ccfind ` +
+        `The search index at ${dbPath} was written by a newer version of ccback ` +
           `(schema ${version}, this build understands ${SCHEMA_VERSION}). ` +
           `Delete ${dbPath} and run again; it is rebuilt automatically.`,
       );

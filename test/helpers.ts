@@ -12,8 +12,8 @@ const created: string[] = [];
  * must never inherit from whoever started the test run.
  */
 export const SCRUBBED_ENV = [
-  'CCFIND_HOME',
-  'CCFIND_DEBUG',
+  'CCBACK_HOME',
+  'CCBACK_DEBUG',
   'CLAUDE_CONFIG_DIR',
   'NO_COLOR',
   'SHELL',
@@ -23,7 +23,7 @@ export const SCRUBBED_ENV = [
   'XDG_CONFIG_HOME',
   // Keyword-only is a whole-tool switch: a developer with it exported must not
   // change what the suite exercises.
-  'CCFIND_KEYWORD_ONLY',
+  'CCBACK_KEYWORD_ONLY',
 ] as const;
 
 /** A `CLAUDE_CONFIG_DIR` that cannot exist, so a fall-through finds nothing. */
@@ -33,7 +33,7 @@ export const NO_CLAUDE_CONFIG_DIR = '/nonexistent-claude-config-dir-for-tests';
  * The environment for a child process of a test.
  *
  * Every variable that could point the child at a real index is removed first
- * and then set explicitly: a developer with `CCFIND_HOME` exported in their own
+ * and then set explicitly: a developer with `CCBACK_HOME` exported in their own
  * shell must not be able to make the suite index their real transcripts. Pass
  * the app home the child is allowed to use — there is no default, on purpose.
  */
@@ -41,7 +41,7 @@ export function childEnv(overrides: Record<string, string | undefined> = {}): No
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of SCRUBBED_ENV) delete env[key];
   env['CLAUDE_CONFIG_DIR'] = NO_CLAUDE_CONFIG_DIR;
-  env['CCFIND_NO_MODEL'] = '1';
+  env['CCBACK_NO_MODEL'] = '1';
   env['NO_COLOR'] = '1';
   for (const [key, value] of Object.entries(overrides)) {
     if (value === undefined) delete env[key];
@@ -51,7 +51,7 @@ export function childEnv(overrides: Record<string, string | undefined> = {}): No
 }
 
 /** Fresh temp directory, removed by `cleanupTempDirs()`. */
-export function tempDir(prefix = 'ccfind-test-'): string {
+export function tempDir(prefix = 'ccback-test-'): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   created.push(dir);
   return dir;

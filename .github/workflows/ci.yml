@@ -30,4 +30,4 @@ jobs:
       - run: npm test
         env:
           # No model download in CI: the embedding tests use a fake embedder.
-          CCFIND_NO_MODEL: '1'
+          CCBACK_NO_MODEL: '1'

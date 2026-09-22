@@ -38,7 +38,7 @@ interface Finished {
 function runIndex(home: string): Promise<Finished> {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [cliPath, '--reindex', '--projects-dir', fixture.projectsDir], {
-      env: childEnv({ CCFIND_HOME: home }),
+      env: childEnv({ CCBACK_HOME: home }),
       stdio: ['ignore', 'ignore', 'pipe'],
     });
     let stderr = '';
@@ -82,7 +82,7 @@ describe('concurrent first runs', () => {
       [cliPath, 'recording videos', '--json', '--projects-dir', fixture.projectsDir],
       {
         encoding: 'utf8',
-        env: childEnv({ CCFIND_HOME: home }),
+        env: childEnv({ CCBACK_HOME: home }),
       },
     );
     expect(search.status).toBe(0);
@@ -98,7 +98,7 @@ describe('concurrent first runs', () => {
         process.execPath,
         [cliPath, '--reindex', '--full', '--projects-dir', fixture.projectsDir],
         {
-          env: childEnv({ CCFIND_HOME: home }),
+          env: childEnv({ CCBACK_HOME: home }),
           stdio: ['ignore', 'ignore', 'pipe'],
         },
       );
@@ -130,7 +130,7 @@ describe('concurrent first runs', () => {
         process.execPath,
         [cliPath, 'recording', '--json', '--projects-dir', fixture.projectsDir],
         {
-          env: childEnv({ CCFIND_HOME: home }),
+          env: childEnv({ CCBACK_HOME: home }),
           stdio: ['ignore', 'ignore', 'pipe'],
         },
       );

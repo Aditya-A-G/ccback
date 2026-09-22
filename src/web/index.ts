@@ -1,5 +1,5 @@
 /**
- * Local web UI: `ccfind --web`.
+ * Local web UI: `ccback --web`.
  *
  * A `node:http` server on 127.0.0.1 serving a read-only JSON API plus three
  * static files. It reads the index through the core public API and never
@@ -69,7 +69,7 @@ export interface StartWebServerOptions {
   port: number;
   /** Transcript directory, only used to report status. */
   projectsDir?: string | undefined;
-  /** Overrides `CCFIND_HOME`. */
+  /** Overrides `CCBACK_HOME`. */
   appHome?: string | undefined;
   /** Explicit path to `index.db`. */
   dbPath?: string | undefined;
@@ -175,12 +175,12 @@ export function transcriptUrl(handle: { url: string }, sessionId: string, messag
 }
 
 /**
- * `ccfind --web`: sync, serve, print the URL, open a browser, and stay up
+ * `ccback --web`: sync, serve, print the URL, open a browser, and stay up
  * until Ctrl-C.
  */
 export async function runWeb(opts: WebOptions): Promise<number> {
   // Ctrl+C is how this command ends, and a shell expects 130 from it — a `&&`
-  // chain after `ccfind -w` must not carry on as though the user was done.
+  // chain after `ccback -w` must not carry on as though the user was done.
   //
   // The handlers go on before any other work, not after the URL is printed:
   // until a listener exists Node's default disposition for SIGINT is to kill
@@ -259,7 +259,7 @@ async function serveUntilStopped(
 
   if (!opts.noSync && setupHint === '') {
     // Aborted by the first Ctrl+C: the sync stops between files and what it
-    // finished is kept, exactly as `ccfind --index` behaves.
+    // finished is kept, exactly as `ccback --index` behaves.
     const result = await sync({ projectsDir: opts.projectsDir, signal: syncSignal });
     if (result.indexedFiles > 0 || result.removedFiles > 0) {
       process.stderr.write(
@@ -291,7 +291,7 @@ async function serveUntilStopped(
     port: opts.port,
     projectsDir,
     ...(notice === null ? {} : { notice }),
-    // `--keyword-only` (or CCFIND_KEYWORD_ONLY): no background embedding job,
+    // `--keyword-only` (or CCBACK_KEYWORD_ONLY): no background embedding job,
     // and every route answers as though smart search were not there.
     ...(opts.keywordOnly === null ? {} : { keywordOnly: opts.keywordOnly, autoEmbed: false }),
   });

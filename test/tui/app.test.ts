@@ -668,7 +668,7 @@ describe('the full message view', () => {
   });
 
   it('resumes straight from the expanded view', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-tui-cwd-'));
     tempDirs.push(workdir);
     const tui = startTui({
       deps: {
@@ -1024,7 +1024,7 @@ describe('smart search sets itself up', () => {
   });
 
   it('aborts the background work before resuming', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-tui-cwd-'));
     tempDirs.push(workdir);
     const order: string[] = [];
     const tui = startTui({
@@ -1055,7 +1055,7 @@ describe('smart search sets itself up', () => {
 
 describe('resume', () => {
   it('Enter resumes the selected session and resolves with the spawner exit code', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-tui-cwd-'));
     tempDirs.push(workdir);
     const result = makeResult({ sessionId: 'sess-42', cwd: workdir, cwdExists: true });
     const tui = startTui({
@@ -1093,7 +1093,7 @@ describe('resume', () => {
   });
 
   it('prints the command instead of crashing when claude is not on PATH', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-tui-cwd-'));
     tempDirs.push(workdir);
     const result = makeResult({ sessionId: 'sess-9', cwd: workdir });
     const tui = startTui({
@@ -1113,7 +1113,7 @@ describe('resume', () => {
   });
 
   it('blames the folder, not the PATH, when the cwd vanished before the spawn', async () => {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-gone-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-tui-gone-'));
     tempDirs.push(workdir);
     const result = makeResult({ sessionId: 'sess-10', cwd: workdir });
     const tui = startTui({
@@ -1136,9 +1136,9 @@ describe('resume', () => {
   });
 
   it('runs `claude --resume <id>` in the session folder', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-tui-'));
     tempDirs.push(dir);
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-cwd-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-tui-cwd-'));
     tempDirs.push(workdir);
     const outFile = path.join(dir, 'argv.txt');
     // A stand-in for the real `claude`, found through PATH exactly as the real
@@ -1152,10 +1152,10 @@ describe('resume', () => {
         path.join(dir, 'claude.cmd'),
         [
           '@echo off',
-          '>"%CCFIND_TEST_ARGV%" echo %CD%',
+          '>"%CCBACK_TEST_ARGV%" echo %CD%',
           ':loop',
           'if "%~1"=="" goto done',
-          '>>"%CCFIND_TEST_ARGV%" echo %~1',
+          '>>"%CCBACK_TEST_ARGV%" echo %~1',
           'shift',
           'goto loop',
           ':done',
@@ -1171,9 +1171,9 @@ describe('resume', () => {
       );
     }
     const previousPath = process.env['PATH'];
-    const previousOut = process.env['CCFIND_TEST_ARGV'];
+    const previousOut = process.env['CCBACK_TEST_ARGV'];
     process.env['PATH'] = `${dir}${path.delimiter}${previousPath ?? ''}`;
-    process.env['CCFIND_TEST_ARGV'] = outFile;
+    process.env['CCBACK_TEST_ARGV'] = outFile;
     try {
       const code = await defaultDeps().spawnResume({ cwd: workdir, sessionId: 'abc-123' });
       expect(code).toBe(7);
@@ -1185,8 +1185,8 @@ describe('resume', () => {
       expect(recorded.slice(1)).toEqual(['--resume', 'abc-123']);
     } finally {
       process.env['PATH'] = previousPath;
-      if (previousOut === undefined) delete process.env['CCFIND_TEST_ARGV'];
-      else process.env['CCFIND_TEST_ARGV'] = previousOut;
+      if (previousOut === undefined) delete process.env['CCBACK_TEST_ARGV'];
+      else process.env['CCBACK_TEST_ARGV'] = previousOut;
     }
     expect(typeof spawnResume).toBe('function');
   }, 20_000);
@@ -1553,7 +1553,7 @@ describe('hostile transcript text in the TUI', () => {
 
 describe('the TUI never resumes into the wrong folder', () => {
   it('refuses to spawn when the folder disappeared after the index was written', async () => {
-    const gone = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-tui-gone-'));
+    const gone = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-tui-gone-'));
     fs.rmSync(gone, { recursive: true, force: true });
     const result = makeResult({ sessionId: 'sess-gone', cwd: gone, cwdExists: true });
     const tui = startTui({ deps: { recentSessions: () => [result] } });

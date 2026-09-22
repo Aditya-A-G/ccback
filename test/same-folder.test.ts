@@ -24,28 +24,28 @@ afterAll(cleanupTempDirs);
 
 describe('canonicalDir', () => {
   it('resolves a real directory the way the filesystem spells it', () => {
-    const dir = tempDir('ccfind-canon-');
+    const dir = tempDir('ccback-canon-');
     expect(canonicalDir(dir)).toBe(fs.realpathSync.native(dir));
   });
 
   it('falls back to the resolved path when the directory is not there', () => {
-    const missing = path.join(tempDir('ccfind-canon-gone-'), 'nowhere');
+    const missing = path.join(tempDir('ccback-canon-gone-'), 'nowhere');
     expect(canonicalDir(missing)).toBe(path.resolve(missing));
   });
 });
 
 describe('sameDirectory', () => {
   it('ignores a trailing separator', () => {
-    const dir = tempDir('ccfind-same-');
+    const dir = tempDir('ccback-same-');
     expect(sameDirectory(dir, `${dir}${path.sep}`)).toBe(true);
   });
 
   it('says no to two different directories', () => {
-    expect(sameDirectory(tempDir('ccfind-same-a-'), tempDir('ccfind-same-b-'))).toBe(false);
+    expect(sameDirectory(tempDir('ccback-same-a-'), tempDir('ccback-same-b-'))).toBe(false);
   });
 
   it('compares text when neither side exists', () => {
-    const base = tempDir('ccfind-same-missing-');
+    const base = tempDir('ccback-same-missing-');
     expect(sameDirectory(path.join(base, 'gone'), path.join(base, 'gone'))).toBe(true);
     expect(sameDirectory(path.join(base, 'gone'), path.join(base, 'other'))).toBe(false);
   });
@@ -53,7 +53,7 @@ describe('sameDirectory', () => {
   // Windows needs Developer Mode or elevation to create a symlink, so the
   // interesting case here cannot be set up there at all.
   it.skipIf(process.platform === 'win32')('sees through a symlinked spelling', () => {
-    const base = tempDir('ccfind-same-link-');
+    const base = tempDir('ccback-same-link-');
     const real = path.join(base, 'real');
     const link = path.join(base, 'link');
     fs.mkdirSync(real);
@@ -66,7 +66,7 @@ describe('sameDirectory', () => {
   // `C:\Users\runneradmin\…`; `--no-sync` would warn about a folder the user
   // never changed if those two did not compare equal.
   it.runIf(process.platform === 'win32')('sees through an 8.3 short-name spelling', () => {
-    const dir = tempDir('ccfind-same-short-');
+    const dir = tempDir('ccback-same-short-');
     const long = fs.realpathSync.native(dir);
     // Only meaningful when this machine really does hand out a short name.
     if (long === dir) return;
@@ -113,7 +113,7 @@ describe('projectsDirMismatch', () => {
   it('still names both folders when the default folder is not the recorded one', async () => {
     const { db, projectsDir } = await indexed();
     const previous = process.env['CLAUDE_CONFIG_DIR'];
-    const elsewhere = tempDir('ccfind-default-elsewhere-');
+    const elsewhere = tempDir('ccback-default-elsewhere-');
     process.env['CLAUDE_CONFIG_DIR'] = elsewhere;
     try {
       const line = projectsDirMismatch(undefined, { db });
@@ -143,7 +143,7 @@ describe('projectsDirMismatch', () => {
 
   it('names both folders when they differ', async () => {
     const { db, projectsDir } = await indexed();
-    const elsewhere = tempDir('ccfind-mismatch-');
+    const elsewhere = tempDir('ccback-mismatch-');
     const line = projectsDirMismatch(elsewhere, { db });
     expect(line).not.toBeNull();
     expect(line).toContain('--no-sync');
@@ -158,7 +158,7 @@ describe('projectsDirMismatch', () => {
 
   it('sanitises the path it echoes back', async () => {
     const { db } = await indexed();
-    const hostile = path.join(tempDir('ccfind-hostile-'), 'esc\u001b[31mred\u0007');
+    const hostile = path.join(tempDir('ccback-hostile-'), 'esc\u001b[31mred\u0007');
     const line = projectsDirMismatch(hostile, { db });
     expect(line).not.toBeNull();
     expect(line).not.toContain('\u001b');

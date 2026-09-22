@@ -118,9 +118,9 @@ describe('the reader', () => {
   });
 });
 
-describe('the page says ccfind', () => {
+describe('the page says ccback', () => {
   it('in its title and in the document title it sets', () => {
-    expect(html).toContain('<title>ccfind</title>');
-    expect(js).toContain("' — ccfind'");
+    expect(html).toContain('<title>ccback</title>');
+    expect(js).toContain("' — ccback'");
   });
 });

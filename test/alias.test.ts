@@ -1,7 +1,7 @@
 /**
- * `ccfind --alias [name]`.
+ * `ccback --alias [name]`.
  *
- * The published binaries stay `ccfind` and `ccf`; a short name is something
+ * The published binaries stay `ccback` and `ccb`; a short name is something
  * the user opts into, and only after we have proved it is free on their
  * machine. Nothing here may write to a real home directory, rewrite a file, or
  * accept a name a shell could read as syntax.
@@ -28,9 +28,9 @@ interface Harness {
 }
 
 function harness(overrides: Partial<AliasEnv> & { answer?: string } = {}): Harness {
-  const home = tempDir('ccfind-alias-home-');
+  const home = tempDir('ccback-alias-home-');
   // An empty PATH by default: the machine has nothing that could clash.
-  const emptyPath = tempDir('ccfind-alias-path-');
+  const emptyPath = tempDir('ccback-alias-path-');
   const written: string[] = [];
   const asked: string[] = [];
   const env: AliasEnv = {
@@ -65,7 +65,7 @@ describe('the name', () => {
     for (const good of ['sf', 'ccf2', 'my-find', 'my_find']) {
       const h = harness({ assumeYes: true });
       expect(await runAlias(good, h.env)).toBe(0);
-      expect(read(path.join(h.home, '.zshrc'))).toContain(`alias ${good}=ccfind`);
+      expect(read(path.join(h.home, '.zshrc'))).toContain(`alias ${good}=ccback`);
     }
   });
 });
@@ -74,34 +74,34 @@ describe('the shell it writes for', () => {
   it('zsh: ~/.zshrc', async () => {
     const h = harness({ shell: '/bin/zsh', assumeYes: true });
     expect(await runAlias('sf', h.env)).toBe(0);
-    expect(read(path.join(h.home, '.zshrc'))).toBe('\n# ccfind short command\nalias sf=ccfind\n');
+    expect(read(path.join(h.home, '.zshrc'))).toBe('\n# ccback short command\nalias sf=ccback\n');
   });
 
   it('bash on linux: ~/.bashrc', async () => {
     const h = harness({ shell: '/usr/bin/bash', platform: 'linux', assumeYes: true });
     fs.writeFileSync(path.join(h.home, '.bashrc'), '# mine\n');
     expect(await runAlias('sf', h.env)).toBe(0);
-    expect(read(path.join(h.home, '.bashrc'))).toBe('# mine\n\n# ccfind short command\nalias sf=ccfind\n');
+    expect(read(path.join(h.home, '.bashrc'))).toBe('# mine\n\n# ccback short command\nalias sf=ccback\n');
   });
 
   it('bash on macOS without a .bashrc: ~/.bash_profile', async () => {
     const h = harness({ shell: '/bin/bash', platform: 'darwin', assumeYes: true });
     expect(await runAlias('sf', h.env)).toBe(0);
     expect(fs.existsSync(path.join(h.home, '.bashrc'))).toBe(false);
-    expect(read(path.join(h.home, '.bash_profile'))).toContain('alias sf=ccfind');
+    expect(read(path.join(h.home, '.bash_profile'))).toContain('alias sf=ccback');
   });
 
   it('fish: ~/.config/fish/config.fish, in fish syntax', async () => {
     const h = harness({ shell: '/opt/homebrew/bin/fish', assumeYes: true });
     expect(await runAlias('sf', h.env)).toBe(0);
-    expect(read(path.join(h.home, '.config', 'fish', 'config.fish'))).toContain('alias sf ccfind');
+    expect(read(path.join(h.home, '.config', 'fish', 'config.fish'))).toContain('alias sf ccback');
   });
 
   it('windows and unknown shells: prints the line, changes nothing', async () => {
     for (const env of [{ platform: 'win32' as const }, { shell: '/usr/bin/nu' }]) {
       const h = harness({ ...env, assumeYes: true });
       expect(await runAlias('sf', h.env)).toBe(0);
-      expect(h.out()).toContain('Set-Alias sf ccfind');
+      expect(h.out()).toContain('Set-Alias sf ccback');
       expect(fs.readdirSync(h.home)).toEqual([]);
     }
   });
@@ -109,7 +109,7 @@ describe('the shell it writes for', () => {
 
 describe('clashes', () => {
   it('refuses a name that is already a command on PATH, and says which', async () => {
-    const binDir = tempDir('ccfind-alias-bin-');
+    const binDir = tempDir('ccback-alias-bin-');
     const existing = path.join(binDir, 'sf');
     fs.writeFileSync(existing, '#!/bin/sh\necho salesforce\n', { mode: 0o755 });
 
@@ -125,14 +125,14 @@ describe('clashes', () => {
   // with no extension a command?" — is the PATHEXT test just below, which runs
   // everywhere.
   it.skipIf(isWindows)('ignores a file on PATH that is not executable', async () => {
-    const binDir = tempDir('ccfind-alias-bin2-');
+    const binDir = tempDir('ccback-alias-bin2-');
     fs.writeFileSync(path.join(binDir, 'sf'), 'just a text file\n', { mode: 0o644 });
     const h = harness({ pathEntries: [binDir], assumeYes: true });
     expect(await runAlias('sf', h.env)).toBe(0);
   });
 
   it('on Windows, ignores an extension-less file and refuses a name PATHEXT can run', async () => {
-    const binDir = tempDir('ccfind-alias-bin3-');
+    const binDir = tempDir('ccback-alias-bin3-');
     // PATHEXT is matched case-insensitively on Windows; spelled in lower case
     // here so the same candidate name also exists on a case-sensitive disk and
     // the test is the same test on every platform.
@@ -142,7 +142,7 @@ describe('clashes', () => {
     fs.writeFileSync(path.join(binDir, 'sf'), 'just a text file\n');
     const free = harness({ platform: 'win32', pathEntries: [binDir], pathExt, assumeYes: true });
     expect(await runAlias('sf', free.env)).toBe(0);
-    expect(free.out()).toContain('Set-Alias sf ccfind');
+    expect(free.out()).toContain('Set-Alias sf ccback');
 
     // `sf.cmd` is, and gets the same refusal a POSIX executable would.
     const shim = path.join(binDir, 'sf.cmd');
@@ -179,8 +179,8 @@ describe('consent', () => {
     const h = harness();
     expect(await runAlias('sf', h.env)).toBe(0);
     expect(h.out()).toContain(path.join(h.home, '.zshrc'));
-    expect(h.out()).toContain('# ccfind short command');
-    expect(h.out()).toContain('alias sf=ccfind');
+    expect(h.out()).toContain('# ccback short command');
+    expect(h.out()).toContain('alias sf=ccback');
     expect(h.asked).toEqual(['Add it? (y/N) ']);
     expect(h.out()).toContain('source ');
   });
@@ -199,7 +199,7 @@ describe('consent', () => {
     expect(await runAlias('sf', h.env)).toBe(0);
     expect(h.asked).toEqual([]);
     expect(fs.existsSync(path.join(h.home, '.zshrc'))).toBe(false);
-    expect(h.out()).toContain('alias sf=ccfind');
+    expect(h.out()).toContain('alias sf=ccback');
     expect(h.out()).toContain('nothing was changed');
     // And it says how to mean it, which is what --yes is for.
     expect(h.out()).toContain('run again with --yes to apply it');
@@ -210,13 +210,13 @@ describe('consent', () => {
       const h = harness({ isTty, assumeYes: true });
       expect(await runAlias('sf', h.env), String(isTty)).toBe(0);
       expect(h.asked).toEqual([]);
-      expect(read(path.join(h.home, '.zshrc'))).toContain('alias sf=ccfind');
+      expect(read(path.join(h.home, '.zshrc'))).toContain('alias sf=ccback');
       expect(h.out()).toContain('Added.');
     }
   });
 
   it('--yes still runs every check: a taken name is refused, not written', async () => {
-    const binDir = tempDir('ccfind-alias-yes-bin-');
+    const binDir = tempDir('ccback-alias-yes-bin-');
     fs.writeFileSync(path.join(binDir, 'sf'), '#!/bin/sh\n', { mode: 0o755 });
     const h = harness({ isTty: false, assumeYes: true, pathEntries: [binDir] });
     await expect(runAlias('sf', h.env)).rejects.toSatisfy(isUserError);
@@ -248,7 +248,7 @@ describe('the file it appends to', () => {
 
     expect(await runAlias('sf', h.env)).toBe(0);
     expect(fs.lstatSync(path.join(h.home, '.zshrc')).isSymbolicLink()).toBe(true);
-    expect(read(real)).toBe('# kept in a repo\n\n# ccfind short command\nalias sf=ccfind\n');
+    expect(read(real)).toBe('# kept in a repo\n\n# ccback short command\nalias sf=ccback\n');
   });
 
   it('appends, preserving the file, its order and its mode', async () => {
@@ -270,51 +270,51 @@ describe('through the command line', () => {
   const cliPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'cli.js');
 
   it('a bare --alias uses the default name and, piped, only prints', () => {
-    const home = tempDir('ccfind-alias-cli-');
+    const home = tempDir('ccback-alias-cli-');
     const result = spawnSync(process.execPath, [cliPath, '--alias'], {
       encoding: 'utf8',
       env: childEnv({
         HOME: home,
         USERPROFILE: home,
         SHELL: '/bin/zsh',
-        PATH: tempDir('ccfind-alias-cli-path-'),
-        CCFIND_HOME: home,
+        PATH: tempDir('ccback-alias-cli-path-'),
+        CCBACK_HOME: home,
       }),
     });
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('alias sf=ccfind');
+    expect(result.stdout).toContain('alias sf=ccback');
     expect(fs.existsSync(path.join(home, '.zshrc'))).toBe(false);
   });
 
   it('--alias --yes writes the line even when piped', () => {
-    const home = tempDir('ccfind-alias-cli-yes-');
+    const home = tempDir('ccback-alias-cli-yes-');
     const result = spawnSync(process.execPath, [cliPath, '--alias', '--yes'], {
       encoding: 'utf8',
       env: childEnv({
         HOME: home,
         USERPROFILE: home,
         SHELL: '/bin/zsh',
-        PATH: tempDir('ccfind-alias-cli-yes-path-'),
-        CCFIND_HOME: home,
+        PATH: tempDir('ccback-alias-cli-yes-path-'),
+        CCBACK_HOME: home,
       }),
     });
     expect([result.status, result.stderr]).toEqual([0, result.stderr]);
     if (isWindows) {
       // On Windows the product deliberately never writes: there is no startup
       // file it could guess at, so `--yes` still only prints the line to paste.
-      expect(result.stdout).toContain('Set-Alias sf ccfind');
+      expect(result.stdout).toContain('Set-Alias sf ccback');
       expect(fs.readdirSync(home)).toEqual([]);
     } else {
-      expect(fs.readFileSync(path.join(home, '.zshrc'), 'utf8')).toContain('alias sf=ccfind');
+      expect(fs.readFileSync(path.join(home, '.zshrc'), 'utf8')).toContain('alias sf=ccback');
       expect(result.stdout).toContain('Added.');
     }
   });
 
   it('an invalid name exits 2 with one line', () => {
-    const home = tempDir('ccfind-alias-cli-bad-');
+    const home = tempDir('ccback-alias-cli-bad-');
     const result = spawnSync(process.execPath, [cliPath, '--alias', 'sf; rm -rf ~'], {
       encoding: 'utf8',
-      env: childEnv({ HOME: home, USERPROFILE: home, SHELL: '/bin/zsh', CCFIND_HOME: home }),
+      env: childEnv({ HOME: home, USERPROFILE: home, SHELL: '/bin/zsh', CCBACK_HOME: home }),
     });
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('not a name a shell can use');

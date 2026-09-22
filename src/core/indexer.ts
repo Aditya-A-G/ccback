@@ -145,7 +145,7 @@ function assertSameProjectsDir(db: Db, projectsDir: string): void {
   if (indexedRoot !== null && !sameDirectory(indexedRoot, root)) {
     throw new UserError(
       `This index was built from ${indexedRoot}, not ${root}. ` +
-        'Set CCFIND_HOME to keep a separate index for that folder, or run with --reindex --full to switch this one over.',
+        'Set CCBACK_HOME to keep a separate index for that folder, or run with --reindex --full to switch this one over.',
     );
   }
   if (indexedRoot === null) setMeta(db, PROJECTS_DIR_META, root);

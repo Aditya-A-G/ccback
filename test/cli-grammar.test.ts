@@ -36,7 +36,7 @@ afterAll(cleanupTempDirs);
 function run(args: string[], extraEnv: NodeJS.ProcessEnv = {}): { status: number; stdout: string; stderr: string } {
   const result = spawnSync(process.execPath, [cliPath, ...args], {
     encoding: 'utf8',
-    env: childEnv({ CCFIND_HOME: fixture.home, ...(extraEnv as Record<string, string | undefined>) }),
+    env: childEnv({ CCBACK_HOME: fixture.home, ...(extraEnv as Record<string, string | undefined>) }),
   });
   return { status: result.status ?? -1, stdout: result.stdout, stderr: result.stderr };
 }
@@ -174,7 +174,7 @@ describe('--web', () => {
       process.execPath,
       [cliPath, '--projects-dir', fixture.projectsDir, '--web', '--no-open', '--port', String(port)],
       {
-        env: childEnv({ CCFIND_HOME: path.join(fixture.root, 'web-home') }),
+        env: childEnv({ CCBACK_HOME: path.join(fixture.root, 'web-home') }),
       },
     );
 
@@ -204,7 +204,7 @@ describe('--web', () => {
     // disagree with.
     const seeded = spawnSync(process.execPath, [cliPath, '--projects-dir', fixture.projectsDir, '--reindex'], {
       encoding: 'utf8',
-      env: childEnv({ CCFIND_HOME: home }),
+      env: childEnv({ CCBACK_HOME: home }),
     });
     expect(seeded.status).toBe(0);
 
@@ -225,7 +225,7 @@ describe('--web', () => {
         '--projects-dir',
         elsewhere.projectsDir,
       ],
-      { env: childEnv({ CCFIND_HOME: home }) },
+      { env: childEnv({ CCBACK_HOME: home }) },
     );
 
     const stderr = await new Promise<string>((resolve, reject) => {

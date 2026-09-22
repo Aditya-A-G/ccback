@@ -1,5 +1,5 @@
 /**
- * What `npm install -g ccfind` actually puts on somebody's disk.
+ * What `npm install -g ccback` actually puts on somebody's disk.
  *
  * Source maps and declaration maps point at a `../src` that is not shipped:
  * dead weight in the download, and a debugger's dead end. The tarball must

@@ -178,7 +178,7 @@ describe('static file serving', () => {
     for (const path of attacks) {
       const res = await request(web.port, path);
       expect([path, res.status === 404 || res.status === 400]).toEqual([path, true]);
-      expect(res.body).not.toContain('<title>ccfind</title>');
+      expect(res.body).not.toContain('<title>ccback</title>');
       expect(res.body).not.toContain('"better-sqlite3"');
       expect(res.body).not.toContain('root:');
     }

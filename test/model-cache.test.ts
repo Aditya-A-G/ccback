@@ -32,7 +32,7 @@ afterAll(cleanupTempDirs);
 
 /** A cache that looks exactly like a finished download to `isModelReady`. */
 function completeCache(): string {
-  const cache = tempDir('ccfind-model-');
+  const cache = tempDir('ccback-model-');
   const dir = modelCacheDirFor(cache, DEFAULT_MODEL_ID);
   fs.mkdirSync(path.join(dir, 'onnx'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'config.json'), '{}');
@@ -43,12 +43,12 @@ function completeCache(): string {
 
 describe('the model cache', () => {
   it('is not ready when nothing was ever downloaded', () => {
-    expect(isModelReady(tempDir('ccfind-model-'), DEFAULT_MODEL_ID)).toBe(false);
+    expect(isModelReady(tempDir('ccback-model-'), DEFAULT_MODEL_ID)).toBe(false);
   });
 
   it('is not ready when the download stopped halfway', () => {
     // Files on disk, but no successful load ever happened.
-    const cache = tempDir('ccfind-model-');
+    const cache = tempDir('ccback-model-');
     const dir = modelCacheDirFor(cache, DEFAULT_MODEL_ID);
     fs.mkdirSync(path.join(dir, 'onnx'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'config.json'), '{}');
@@ -80,12 +80,12 @@ describe('the model cache', () => {
   });
 
   it('refuses a model id that would climb out of the cache', () => {
-    expect(() => modelCacheDirFor(tempDir('ccfind-model-'), '../../etc')).toThrow(/Refusing/);
+    expect(() => modelCacheDirFor(tempDir('ccback-model-'), '../../etc')).toThrow(/Refusing/);
   });
 
   it('never deletes through a symlink inside the cache', () => {
     const cache = completeCache();
-    const outside = tempDir('ccfind-model-outside-');
+    const outside = tempDir('ccback-model-outside-');
     const keep = path.join(outside, 'precious.bin');
     fs.writeFileSync(keep, 'somebody else\'s file');
     const dir = modelCacheDirFor(cache, DEFAULT_MODEL_ID);
@@ -104,8 +104,8 @@ describe('the model cache', () => {
   });
 
   it('never deletes through a symlinked model directory', () => {
-    const cache = tempDir('ccfind-model-');
-    const outside = tempDir('ccfind-model-outside2-');
+    const cache = tempDir('ccback-model-');
+    const outside = tempDir('ccback-model-outside2-');
     fs.writeFileSync(path.join(outside, 'precious.bin'), 'keep me');
     const dir = modelCacheDirFor(cache, DEFAULT_MODEL_ID);
     fs.mkdirSync(path.dirname(dir), { recursive: true });
@@ -118,8 +118,8 @@ describe('the model cache', () => {
   });
 
   it('refuses to walk a model directory that leads out of the cache', () => {
-    const cache = tempDir('ccfind-model-');
-    const outside = tempDir('ccfind-model-outside3-');
+    const cache = tempDir('ccback-model-');
+    const outside = tempDir('ccback-model-outside3-');
     // <cache>/Xenova is the link this time: the leaf itself is a real directory.
     const owner = path.join(outside, 'all-MiniLM-L6-v2');
     fs.mkdirSync(owner, { recursive: true });
@@ -133,13 +133,13 @@ describe('the model cache', () => {
   });
 
   it('is quiet about a cache that was never there', () => {
-    expect(() => clearModelCache(path.join(tempDir('ccfind-model-'), 'never'), DEFAULT_MODEL_ID)).not.toThrow();
+    expect(() => clearModelCache(path.join(tempDir('ccback-model-'), 'never'), DEFAULT_MODEL_ID)).not.toThrow();
   });
 });
 
 describe('what a scripted run may do about smart search', () => {
   const cached = completeCache();
-  const empty = tempDir('ccfind-model-');
+  const empty = tempDir('ccback-model-');
 
   it('leaves keyword alone', () => {
     expect(nonInteractiveMode('keyword', empty)).toBe('keyword');
@@ -243,8 +243,8 @@ describe('a corrupt model cache', () => {
       appHome,
       createEmbedder: async () => {
         attempts += 1;
-        // This is what CCFIND_NO_MODEL and a missing optional package throw.
-        throw new UserError('CCFIND_NO_MODEL=1 is set, so the embedding model was not loaded.');
+        // This is what CCBACK_NO_MODEL and a missing optional package throw.
+        throw new UserError('CCBACK_NO_MODEL=1 is set, so the embedding model was not loaded.');
       },
     });
 

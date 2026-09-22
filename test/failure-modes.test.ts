@@ -49,7 +49,7 @@ interface Run {
 function run(args: string[], env: Record<string, string | undefined> = {}): Run {
   const result = spawnSync(process.execPath, [cliPath, ...args], {
     encoding: 'utf8',
-    env: childEnv({ CCFIND_HOME: fixture.home, ...env }),
+    env: childEnv({ CCBACK_HOME: fixture.home, ...env }),
   });
   return { status: result.status ?? -1, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 }
@@ -60,7 +60,7 @@ const hasStack = (text: string): boolean => text.includes('    at ') || text.inc
 
 describe('an unreadable index', () => {
   it('explains it in one line with the fix, exit 2, for search, index, stats and web', () => {
-    const home = tempDir('ccfind-corrupt-');
+    const home = tempDir('ccback-corrupt-');
     const dbPath = path.join(home, 'index.db');
     fs.writeFileSync(dbPath, 'this is definitely not a SQLite database\n'.repeat(40));
 
@@ -70,7 +70,7 @@ describe('an unreadable index', () => {
       ['--stats'],
       ['--web', '--no-open'],
     ]) {
-      const result = run([...args, '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home });
+      const result = run([...args, '--projects-dir', fixture.projectsDir], { CCBACK_HOME: home });
       expect([args.join(' '), result.status]).toEqual([args.join(' '), 2]);
       const lines = result.stderr.trim().split('\n');
       expect([args.join(' '), lines.length]).toEqual([args.join(' '), 1]);
@@ -81,28 +81,28 @@ describe('an unreadable index', () => {
   });
 
   it('works again after deleting the file, exactly as the message says', () => {
-    const home = tempDir('ccfind-corrupt2-');
+    const home = tempDir('ccback-corrupt2-');
     const dbPath = path.join(home, 'index.db');
     fs.writeFileSync(dbPath, 'garbage');
-    expect(run(['recording', '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home }).status).toBe(2);
+    expect(run(['recording', '--projects-dir', fixture.projectsDir], { CCBACK_HOME: home }).status).toBe(2);
 
     fs.rmSync(dbPath);
-    const after = run(['recording', '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home });
+    const after = run(['recording', '--projects-dir', fixture.projectsDir], { CCBACK_HOME: home });
     expect(after.status).toBe(0);
     expect(after.stdout).toContain('alpha');
   });
 
   it('refuses an index from a newer build instead of wiping it', () => {
-    const home = tempDir('ccfind-newer-');
+    const home = tempDir('ccback-newer-');
     const dbPath = path.join(home, 'index.db');
     const db = openTrackedDb(dbPath);
     setMeta(db, 'schema_version', String(SCHEMA_VERSION + 7));
     db.close();
 
-    const result = run(['recording', '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home });
+    const result = run(['recording', '--projects-dir', fixture.projectsDir], { CCBACK_HOME: home });
     expect(result.status).toBe(2);
     expect(result.stderr.trim().split('\n')).toHaveLength(1);
-    expect(result.stderr).toContain('written by a newer version of ccfind');
+    expect(result.stderr).toContain('written by a newer version of ccback');
     expect(hasStack(result.stderr)).toBe(false);
 
     // The file is still there: nothing was destroyed on the user's behalf.
@@ -115,12 +115,12 @@ describe('an unreadable index', () => {
   });
 
   it('says a directory where the index should be is unusable, in one line, exit 2', () => {
-    const home = tempDir('ccfind-weird-');
+    const home = tempDir('ccback-weird-');
     // A directory where the index file should be: not corruption, just broken.
     // SQLite cannot open it, and the fix is the same as for a corrupt file.
     fs.mkdirSync(path.join(home, 'index.db'), { recursive: true });
 
-    const result = run(['recording', '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home });
+    const result = run(['recording', '--projects-dir', fixture.projectsDir], { CCBACK_HOME: home });
     expect(result.status).toBe(2);
     expect(hasStack(result.stderr)).toBe(false);
     expect(result.stderr.trim().split('\n')).toHaveLength(1);
@@ -133,26 +133,26 @@ describe('an unreadable index', () => {
     // regular file, so `mkdir` fails with ENOTDIR before SQLite is involved at
     // all — nobody's planned-for case. (`/dev/null/...` only works on POSIX;
     // on Windows it is a perfectly creatable `D:\dev\null\...`.)
-    const file = path.join(tempDir('ccfind-unplanned-'), 'not-a-directory');
+    const file = path.join(tempDir('ccback-unplanned-'), 'not-a-directory');
     fs.writeFileSync(file, 'a regular file where a folder would have to be\n');
-    const home = path.join(file, 'ccfind-home');
+    const home = path.join(file, 'ccback-home');
 
-    const result = run(['recording', '--projects-dir', fixture.projectsDir], { CCFIND_HOME: home });
+    const result = run(['recording', '--projects-dir', fixture.projectsDir], { CCBACK_HOME: home });
     expect(result.status).toBe(1);
     expect(hasStack(result.stderr)).toBe(false);
     expect(result.stderr.trim().split('\n')).toHaveLength(2);
-    expect(result.stderr).toContain('CCFIND_DEBUG=1');
+    expect(result.stderr).toContain('CCBACK_DEBUG=1');
 
     const debug = run(['recording', '--projects-dir', fixture.projectsDir], {
-      CCFIND_HOME: home,
-      CCFIND_DEBUG: '1',
+      CCBACK_HOME: home,
+      CCBACK_DEBUG: '1',
     });
     expect(debug.status).toBe(1);
     expect(debug.stderr).toContain('    at ');
   });
 
   it('an older schema version is migrated in place, not wiped', async () => {
-    const home = tempDir('ccfind-old-');
+    const home = tempDir('ccback-old-');
     const dbPath = path.join(home, 'index.db');
     const db = openTrackedDb(dbPath);
     await syncIndex(db, { projectsDir: fixture.projectsDir });
@@ -193,7 +193,7 @@ describe('a missing transcripts directory', () => {
 
   it('still lets --stats answer "where does this keep its files?"', () => {
     // That is exactly the question somebody asks when the directory is not
-    // where ccfind looked, so it answers it and adds the hint.
+    // where ccback looked, so it answers it and adds the hint.
     const result = run(['--stats', '--projects-dir', missing]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('projects dir');
@@ -204,7 +204,7 @@ describe('a missing transcripts directory', () => {
   });
 
   it('is reported the same way by the core, for the TUI and the web to show', async () => {
-    const home = tempDir('ccfind-missing-');
+    const home = tempDir('ccback-missing-');
     const db = openTrackedDb(path.join(home, 'index.db'));
     await expect(syncIndex(db, { projectsDir: missing })).rejects.toBeInstanceOf(UserError);
 
@@ -215,13 +215,13 @@ describe('a missing transcripts directory', () => {
   });
 
   it('an existing but empty directory is not an error', () => {
-    const empty = tempDir('ccfind-empty-projects-');
-    const home = tempDir('ccfind-empty-home-');
-    const result = run(['recording', '--projects-dir', empty], { CCFIND_HOME: home });
+    const empty = tempDir('ccback-empty-projects-');
+    const home = tempDir('ccback-empty-home-');
+    const result = run(['recording', '--projects-dir', empty], { CCBACK_HOME: home });
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe('No sessions yet');
 
-    const browsing = run(['--projects-dir', empty], { CCFIND_HOME: home });
+    const browsing = run(['--projects-dir', empty], { CCBACK_HOME: home });
     expect(browsing.status).toBe(0);
     expect(browsing.stdout.trim()).toBe('No sessions yet');
   });
@@ -239,15 +239,15 @@ describe('files that could not be read', () => {
   const rootOnly = process.getuid?.() === 0 || process.platform === 'win32';
 
   it.skipIf(rootOnly)('are reported on stderr and retried, not silently dropped', () => {
-    const projects = tempDir('ccfind-unreadable-projects-');
-    const home = tempDir('ccfind-unreadable-home-');
+    const projects = tempDir('ccback-unreadable-projects-');
+    const home = tempDir('ccback-unreadable-home-');
     writeSession(projects, '-tmp-good', 'good', [userMessage('a readable session about videos', { cwd: '/tmp/good' })]);
     const broken = writeSession(projects, '-tmp-bad', 'bad', [
       userMessage('an unreadable session about videos', { cwd: '/tmp/bad' }),
     ]);
     fs.chmodSync(broken, 0o000);
 
-    const first = run(['--reindex', '--projects-dir', projects], { CCFIND_HOME: home });
+    const first = run(['--reindex', '--projects-dir', projects], { CCBACK_HOME: home });
     expect(first.status).toBe(0);
     expect(first.stdout).toContain('1 sessions');
     expect(first.stderr).toContain('Could not read 1 transcript file;');
@@ -257,7 +257,7 @@ describe('files that could not be read', () => {
     expect(hasStack(first.stderr)).toBe(false);
 
     fs.chmodSync(broken, 0o644);
-    const second = run(['--reindex', '--projects-dir', projects], { CCFIND_HOME: home });
+    const second = run(['--reindex', '--projects-dir', projects], { CCBACK_HOME: home });
     expect(second.status).toBe(0);
     expect(second.stdout).toContain('2 sessions');
     expect(second.stderr).not.toContain('Could not read');

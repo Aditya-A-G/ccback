@@ -1,7 +1,7 @@
 /**
- * `ccfind --alias [name]` — a short command that is safe on *this* machine.
+ * `ccback --alias [name]` — a short command that is safe on *this* machine.
  *
- * The published binaries are `ccfind` and `ccf`, deliberately: a package that
+ * The published binaries are `ccback` and `ccb`, deliberately: a package that
  * claims a name like `sf` breaks `npm i -g` for anybody who already has the
  * Salesforce CLI. So the short name is something the user opts into, after we
  * have checked that nothing on their machine answers to it already, and it is
@@ -114,7 +114,7 @@ export const SHELL_BUILTINS: ReadonlySet<string> = new Set([
   'switch',
   // And the names this tool already installs: aliasing one to itself is a loop.
   APP_NAME,
-  'ccf',
+  'ccb',
 ]);
 
 export type AliasShell = 'zsh' | 'bash' | 'fish' | 'unknown';

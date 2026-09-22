@@ -26,9 +26,9 @@ export const HYBRID_CANDIDATES = 50;
 
 /** Where the index lives, and which database handle to use. */
 export interface IndexAccessOptions {
-  /** Explicit path to `index.db`. Defaults to `<CCFIND_HOME>/index.db`. */
+  /** Explicit path to `index.db`. Defaults to `<CCBACK_HOME>/index.db`. */
   dbPath?: string | undefined;
-  /** Overrides `CCFIND_HOME` for this call. */
+  /** Overrides `CCBACK_HOME` for this call. */
   appHome?: string | undefined;
   /** An already-open handle. Front ends that keep one connection pass this. */
   db?: Db | undefined;

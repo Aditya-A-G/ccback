@@ -4,7 +4,7 @@
  * Tools and editors import modules to inspect them, so an `import` of
  * `dist/cli.js` must never sync or write an index: `main()` belongs to the
  * process entry point alone. "Entry point" has to survive the npm bin symlink
- * (`…/bin/ccfind` -> `dist/cli.js`), or the installed command does nothing.
+ * (`…/bin/ccback` -> `dist/cli.js`), or the installed command does nothing.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -28,7 +28,7 @@ beforeAll(() => {
 afterAll(cleanupTempDirs);
 
 function env(): NodeJS.ProcessEnv {
-  return childEnv({ CCFIND_HOME: fixture.home });
+  return childEnv({ CCBACK_HOME: fixture.home });
 }
 
 describe('entry point guard', () => {
@@ -41,7 +41,7 @@ describe('entry point guard', () => {
 
     const result = spawnSync(process.execPath, [scriptPath], {
       encoding: 'utf8',
-      env: { ...env(), CCFIND_HOME: home },
+      env: { ...env(), CCBACK_HOME: home },
     });
 
     expect(result.stderr).toBe('');
@@ -56,7 +56,7 @@ describe('entry point guard', () => {
   it.skipIf(isWindows)('still runs when invoked through a bin symlink, as npm installs it', () => {
     const binDir = path.join(fixture.root, 'bin');
     fs.mkdirSync(binDir, { recursive: true });
-    const link = path.join(binDir, 'ccfind');
+    const link = path.join(binDir, 'ccback');
     if (!fs.existsSync(link)) fs.symlinkSync(cliPath, link);
 
     const result = spawnSync(process.execPath, [link, '--version'], { encoding: 'utf8', env: env() });

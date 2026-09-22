@@ -23,7 +23,7 @@ interface Calls {
 }
 
 /** A picker whose index has work waiting: the normal path would start on it. */
-function picker(over: { keywordOnly?: '--keyword-only' | 'CCFIND_KEYWORD_ONLY' | null; mode?: 'keyword' } = {}) {
+function picker(over: { keywordOnly?: '--keyword-only' | 'CCBACK_KEYWORD_ONLY' | null; mode?: 'keyword' } = {}) {
   const calls: Calls = { semanticStatus: 0, enableSemantic: 0, topUpEmbeddings: 0, searches: [], matches: [] };
   const tui = startTui({
     query: 'recording',
@@ -56,7 +56,7 @@ function picker(over: { keywordOnly?: '--keyword-only' | 'CCFIND_KEYWORD_ONLY' |
 }
 
 describe('the picker with keyword-only on', () => {
-  for (const source of ['--keyword-only', 'CCFIND_KEYWORD_ONLY'] as const) {
+  for (const source of ['--keyword-only', 'CCBACK_KEYWORD_ONLY'] as const) {
     it(`asks nothing and starts nothing (${source})`, async () => {
       // No `mode` passed: keyword-only alone has to decide it, because
       // `runTui` is a public entry point and not only the CLI calls it.

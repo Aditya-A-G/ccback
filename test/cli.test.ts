@@ -2,7 +2,7 @@
  * The command line, as somebody types it.
  *
  * The one rule: words are always the search, every switch is a flag. There are
- * no subcommands, so `ccfind web project` looks for "web project" instead of
+ * no subcommands, so `ccback web project` looks for "web project" instead of
  * starting a browser nobody asked for.
  */
 import { spawn, spawnSync } from 'node:child_process';
@@ -59,7 +59,7 @@ afterAll(cleanupTempDirs);
 function run(args: string[]): { status: number; stdout: string; stderr: string } {
   const result = spawnSync(process.execPath, [cliPath, ...args], {
     encoding: 'utf8',
-    env: childEnv({ CCFIND_HOME: fixture.home }),
+    env: childEnv({ CCBACK_HOME: fixture.home }),
   });
   return { status: result.status ?? -1, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 }
@@ -246,7 +246,7 @@ describe('cli plain output', () => {
   });
 
   it('--no-sync says so when the folder asked for is not the one the index holds', () => {
-    const elsewhere = tempDir('ccfind-cli-elsewhere-');
+    const elsewhere = tempDir('ccback-cli-elsewhere-');
     writeSession(elsewhere, '-tmp-elsewhere', 'elsewhere-session', [
       userMessage('a session that lives somewhere else entirely', { cwd: '/tmp/elsewhere' }),
     ]);
@@ -276,7 +276,7 @@ describe('cli plain output', () => {
   });
 
   it('without --no-sync there is no warning: the index is brought over instead', () => {
-    const elsewhere = tempDir('ccfind-cli-elsewhere2-');
+    const elsewhere = tempDir('ccback-cli-elsewhere2-');
     writeSession(elsewhere, '-tmp-elsewhere', 'elsewhere-session', [
       userMessage('a session that lives somewhere else entirely', { cwd: '/tmp/elsewhere' }),
     ]);
@@ -336,7 +336,7 @@ describe('cli exit codes', () => {
     const child = spawn(
       process.execPath,
       [cliPath, '--projects-dir', fixture.projectsDir, '--web', '--no-open', '--port', '0'],
-      { env: childEnv({ CCFIND_HOME: path.join(fixture.root, 'port-zero-home') }) },
+      { env: childEnv({ CCBACK_HOME: path.join(fixture.root, 'port-zero-home') }) },
     );
     const url = await new Promise<string>((resolve, reject) => {
       let out = '';
@@ -437,7 +437,7 @@ describe('cli help', () => {
     expect(lines.length).toBeLessThanOrEqual(30);
     expect(lines.every((l) => l.length <= 100)).toBe(true);
 
-    const examples = lines.filter((l) => /^ {2}ccfind /.test(l));
+    const examples = lines.filter((l) => /^ {2}ccback /.test(l));
     expect(examples.length).toBeGreaterThanOrEqual(3);
     // They come before the option list, because that is what people copy.
     expect(lines.indexOf(examples[2]!)).toBeLessThan(lines.findIndex((l) => l.startsWith('Options')));

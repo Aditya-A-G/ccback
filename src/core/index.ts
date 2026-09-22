@@ -1,11 +1,11 @@
 /**
- * Public API of ccfind's core.
+ * Public API of ccback's core.
  *
  * Front ends (CLI, TUI, web server) import from here and from nowhere deeper.
  * Everything is synchronous SQLite except `search`, `sync` and `embedMissing`.
  *
  * ```ts
- * import { sync, search, buildResumeCommand } from 'ccfind';
+ * import { sync, search, buildResumeCommand } from 'ccback';
  *
  * await sync({ projectsDir });                       // incremental, cheap
  * const hits = await search({ query: 'recording videos' });   // mode: 'auto'

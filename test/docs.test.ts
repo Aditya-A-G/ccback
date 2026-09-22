@@ -159,7 +159,7 @@ const HIDDEN_FLAGS = new Set(['mode']);
 /**
  * The README's option list — the fenced block holding `-w, --web`. Flags
  * elsewhere in the prose belong to other commands (`claude --resume`, `npm
- * install --omit=optional`) and are not ccfind's to document.
+ * install --omit=optional`) and are not ccback's to document.
  */
 function readmeOptionBlock(): string {
   const blocks = readme.split('```');
@@ -228,7 +228,7 @@ function sourceText(): string {
  * an afternoon on and never see take effect. A flag the README invents is
  * caught by the list above; an environment variable needs its own check.
  *
- * Only this direction is checked: `CCFIND_DEBUG` and `CCFIND_NO_MODEL` exist
+ * Only this direction is checked: `CCBACK_DEBUG` and `CCBACK_NO_MODEL` exist
  * on purpose without being documented.
  */
 describe('the environment variables', () => {
@@ -242,7 +242,7 @@ describe('the environment variables', () => {
 
   it('includes the ones the README leans on', () => {
     const documented = envVarsIn(readme);
-    for (const name of ['CCFIND_HOME', 'CLAUDE_CONFIG_DIR', 'CCFIND_KEYWORD_ONLY']) {
+    for (const name of ['CCBACK_HOME', 'CLAUDE_CONFIG_DIR', 'CCBACK_KEYWORD_ONLY']) {
       expect([...documented], name).toContain(name);
     }
   });
@@ -336,7 +336,7 @@ describe('the CI workflow', () => {
     for (const step of ['npm ci', 'npm run build', 'npm run typecheck', 'npm test']) {
       expect(workflow, step).toContain(step);
     }
-    expect(workflow).toContain('CCFIND_NO_MODEL');
+    expect(workflow).toContain('CCBACK_NO_MODEL');
   });
 
   it('asks for read access only, uses pinned official actions, and needs no secrets', () => {
@@ -363,13 +363,13 @@ describe('the README on --alias', () => {
 
   it('quotes the line the tool actually writes', () => {
     expect(paragraph).toContain(aliasLine(DEFAULT_ALIAS, 'zsh'));
-    expect(aliasLine(DEFAULT_ALIAS, 'zsh')).toBe('alias sf=ccfind');
+    expect(aliasLine(DEFAULT_ALIAS, 'zsh')).toBe('alias sf=ccback');
   });
 
   it('describes the whole block, not just the alias line', () => {
     // A blank line, a comment naming the tool, and the alias: three things.
     const block = aliasBlock(DEFAULT_ALIAS, 'zsh').split('\n');
-    expect([block[0], block[1], block[2]]).toEqual(['', '# ccfind short command', 'alias sf=ccfind']);
+    expect([block[0], block[1], block[2]]).toEqual(['', '# ccback short command', 'alias sf=ccback']);
     expect(paragraph).toContain('blank line');
     expect(paragraph).toContain('comment');
   });

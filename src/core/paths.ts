@@ -6,10 +6,10 @@ import path from 'node:path';
  * The single place the product name lives. Renaming the tool means changing
  * this constant plus `name`/`bin` in package.json.
  */
-export const APP_NAME = 'ccfind';
+export const APP_NAME = 'ccback';
 
 /** Environment variable that relocates {@link resolveAppHome}. */
-export const APP_HOME_ENV = 'CCFIND_HOME';
+export const APP_HOME_ENV = 'CCBACK_HOME';
 
 /**
  * Directory that holds the Claude Code transcripts.
@@ -30,7 +30,7 @@ export function resolveProjectsDir(override?: string | undefined): string {
  * Directory this tool owns: index database, model cache and the running-server
  * marker.
  *
- * An explicit argument wins, then `CCFIND_HOME`, then `~/.ccfind`. A leading
+ * An explicit argument wins, then `CCBACK_HOME`, then `~/.ccback`. A leading
  * `~` is expanded, so the variable can be set the way a shell writes it.
  */
 export function resolveAppHome(override?: string | undefined): string {

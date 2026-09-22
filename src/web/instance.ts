@@ -2,7 +2,7 @@
  * One browser UI per machine.
  *
  * A running server writes `<app home>/web.json`; anything that wants the
- * browser UI — a second `ccfind --web`, the picker's ^O — reads it, checks the
+ * browser UI — a second `ccback --web`, the picker's ^O — reads it, checks the
  * server is really ours and really alive, and reuses it instead of starting a
  * second copy on a second port. A file left behind by a crash is simply
  * overwritten.
@@ -23,7 +23,7 @@ export interface WebInstance {
    * 128 bits of randomness, readable only by the user who owns the file.
    *
    * Being on the recorded port is not proof of anything: a stale marker plus
-   * any local process that answers `{"app":"ccfind"}` was enough to get the
+   * any local process that answers `{"app":"ccback"}` was enough to get the
    * browser opened on somebody else's port, carrying the user's search terms.
    * Knowing this token is the proof — and it never leaves the file, because
    * `/api/status` only ever returns a hash of it and a caller-chosen nonce.
@@ -75,7 +75,7 @@ export const PROBE_TIMEOUT_MS = 1000;
 export const PROBE_MAX_BYTES = 64 * 1024;
 
 export interface InstanceFileOptions {
-  /** Overrides `CCFIND_HOME`. */
+  /** Overrides `CCBACK_HOME`. */
   appHome?: string | undefined;
   /** The secret to write. Generated when absent. */
   token?: string | undefined;

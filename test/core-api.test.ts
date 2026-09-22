@@ -297,7 +297,7 @@ describe('semanticStatus, enableSemantic, topUpEmbeddings', () => {
 });
 
 describe('where the tool keeps its own files', () => {
-  it('reads CCFIND_HOME, lets an explicit path win, and otherwise uses ~/.ccfind', () => {
+  it('reads CCBACK_HOME, lets an explicit path win, and otherwise uses ~/.ccback', () => {
     const previous = { ...process.env };
     try {
       // `resolveAppHome` resolves what it is given, so the expectation is

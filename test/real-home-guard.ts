@@ -1,7 +1,7 @@
 /**
- * The last line of defence: no test run may write to the user's real `~/.ccfind`.
+ * The last line of defence: no test run may write to the user's real `~/.ccback`.
  *
- * A `CCFIND_HOME` inherited from the shell the run started in is enough to
+ * A `CCBACK_HOME` inherited from the shell the run started in is enough to
  * point the suite at a real index, so the suite trusts none of its own callers
  * to get that right. The whole directory is stat-ed before the run and after it,
  * and any difference at all fails the run — after the fact, but loudly, and
@@ -12,11 +12,11 @@ import os from 'node:os';
 import path from 'node:path';
 
 /** Carries the per-run temp directory from the global setup to every worker. */
-export const RUN_HOME_ENV = 'CCFIND_TEST_RUN_HOME';
+export const RUN_HOME_ENV = 'CCBACK_TEST_RUN_HOME';
 
 /** The directory the tool owns under a real home. Never written to by tests. */
 export function realAppHome(home: string = os.homedir()): string {
-  return path.join(home, '.ccfind');
+  return path.join(home, '.ccback');
 }
 
 /** Size and mtime of every file under `dir`, or null when it is not there. */

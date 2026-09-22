@@ -169,7 +169,7 @@ describe('GET /api/status', () => {
   });
 
   it('reports the startup notice so the page can show it', async () => {
-    // `ccfind -w --no-sync --projects-dir <elsewhere>` hands the sentence to
+    // `ccback -w --no-sync --projects-dir <elsewhere>` hands the sentence to
     // the server, which is the only way the page can ever learn about it.
     const notice = '--no-sync: this index was built from /tmp/recorded, not /tmp/asked.';
     const handle = await startWebServer({

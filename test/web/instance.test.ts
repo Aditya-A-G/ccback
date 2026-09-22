@@ -172,7 +172,7 @@ describe('findRunningWeb', () => {
 });
 
 describe('GET /api/status identifies the application', () => {
-  it('answers with app: ccfind, which is what a probe checks', async () => {
+  it('answers with app: ccback, which is what a probe checks', async () => {
     const fixture = await fixtureWithSession();
     const handle = await startWebServer({
       port: 0,
@@ -187,14 +187,14 @@ describe('GET /api/status identifies the application', () => {
       semantic: { runtimeInstalled: boolean; pendingChunks: number; totalChunks: number };
     };
     expect(body.app).toBe(APP_NAME);
-    expect(body.app).toBe('ccfind');
+    expect(body.app).toBe('ccback');
     expect(body.semantic.runtimeInstalled).toBe(true);
     expect(body.semantic.totalChunks).toBeGreaterThan(0);
     await handle.close();
   });
 });
 
-describe('a second `ccfind --web`', () => {
+describe('a second `ccback --web`', () => {
   it('reuses the running server, prints its URL and exits 0', async () => {
     const fixture = await fixtureWithSession();
     const handle = await startWebServer({
@@ -214,7 +214,7 @@ describe('a second `ccfind --web`', () => {
         process.execPath,
         [path.join(projectRoot, 'dist', 'cli.js'), '--web', '--no-open', 'recording videos'],
         {
-          env: childEnv({ CCFIND_HOME: fixture.home }),
+          env: childEnv({ CCBACK_HOME: fixture.home }),
         },
       );
       let stdout = '';

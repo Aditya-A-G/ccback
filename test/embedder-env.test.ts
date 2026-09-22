@@ -51,14 +51,14 @@ const { createDefaultEmbedder } = await import('../src/core/embedder.js');
 
 afterAll(cleanupTempDirs);
 
-/** The suite sets CCFIND_NO_MODEL; these tests are the one place that may load. */
+/** The suite sets CCBACK_NO_MODEL; these tests are the one place that may load. */
 async function withModelAllowed<T>(run: () => Promise<T>): Promise<T> {
-  const previous = process.env['CCFIND_NO_MODEL'];
-  delete process.env['CCFIND_NO_MODEL'];
+  const previous = process.env['CCBACK_NO_MODEL'];
+  delete process.env['CCBACK_NO_MODEL'];
   try {
     return await run();
   } finally {
-    if (previous !== undefined) process.env['CCFIND_NO_MODEL'] = previous;
+    if (previous !== undefined) process.env['CCBACK_NO_MODEL'] = previous;
   }
 }
 
@@ -66,7 +66,7 @@ beforeEach(() => fake.__reset());
 
 describe('a localOnly load', () => {
   it('loads from the cache without reaching the network', async () => {
-    const cacheDir = tempDir('ccfind-env-cache-');
+    const cacheDir = tempDir('ccback-env-cache-');
     await withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }));
 
     expect(fake.__calls).toHaveLength(1);
@@ -78,7 +78,7 @@ describe('a localOnly load', () => {
   });
 
   it('leaves remote loading enabled for the next load in the same process', async () => {
-    const cacheDir = tempDir('ccfind-env-cache-');
+    const cacheDir = tempDir('ccback-env-cache-');
     await withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }));
 
     // What a normal load sees afterwards: this is the regression.
@@ -92,7 +92,7 @@ describe('a localOnly load', () => {
   });
 
   it('puts the flags back even when the model could not be loaded at all', async () => {
-    const cacheDir = tempDir('ccfind-env-cache-');
+    const cacheDir = tempDir('ccback-env-cache-');
     fake.__reset(2);
     await expect(withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }))).rejects.toThrow(
       /cannot load/,
@@ -102,14 +102,14 @@ describe('a localOnly load', () => {
   });
 
   it('records the model as ready only once a pipeline really came back', async () => {
-    const cacheDir = tempDir('ccfind-env-cache-');
+    const cacheDir = tempDir('ccback-env-cache-');
     fake.__reset(2);
     await expect(withModelAllowed(() => createDefaultEmbedder({ cacheDir, localOnly: true }))).rejects.toThrow();
     expect(fs.existsSync(path.join(cacheDir, 'Xenova'))).toBe(false);
 
     fake.__reset();
     await withModelAllowed(() => createDefaultEmbedder({ cacheDir }));
-    expect(fs.existsSync(path.join(cacheDir, 'Xenova', 'all-MiniLM-L6-v2', '.ccfind-model-ready'))).toBe(true);
+    expect(fs.existsSync(path.join(cacheDir, 'Xenova', 'all-MiniLM-L6-v2', '.ccback-model-ready'))).toBe(true);
   });
 
   /**
@@ -120,7 +120,7 @@ describe('a localOnly load', () => {
    * for that.
    */
   it('puts the flags back even when setting them is what fails', async () => {
-    const cacheDir = tempDir('ccfind-env-cache-');
+    const cacheDir = tempDir('ccback-env-cache-');
     const previous = fake.env['localModelPath'];
     let thrown = false;
     Object.defineProperty(fake.env, 'localModelPath', {
@@ -149,8 +149,8 @@ describe('a localOnly load', () => {
     expect(fake.__calls).toHaveLength(0);
   });
 
-  it('still refuses to load anything when CCFIND_NO_MODEL is set', async () => {
-    await expect(createDefaultEmbedder({ cacheDir: tempDir('ccfind-env-cache-') })).rejects.toThrow(/CCFIND_NO_MODEL/);
+  it('still refuses to load anything when CCBACK_NO_MODEL is set', async () => {
+    await expect(createDefaultEmbedder({ cacheDir: tempDir('ccback-env-cache-') })).rejects.toThrow(/CCBACK_NO_MODEL/);
     expect(fake.__calls).toHaveLength(0);
   });
 });

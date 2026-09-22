@@ -1,5 +1,5 @@
 /*
- * ccfind web UI.
+ * ccback web UI.
  *
  * Every piece of transcript text reaches the DOM through `textContent`, and
  * highlights are built by slicing that text with the structured ranges the API
@@ -582,7 +582,7 @@ function initTranscript(sessionId) {
 
   function renderHeader(session) {
     const title = session.title || sessionId;
-    document.title = title + ' — ccfind';
+    document.title = title + ' — ccback';
     el('t-title').textContent = title;
     el('t-cwd').textContent = session.cwd;
 

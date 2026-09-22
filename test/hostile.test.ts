@@ -82,7 +82,7 @@ afterAll(cleanupTempDirs);
 function runCli(args: string[]): { status: number; stdout: string; stderr: string } {
   const result = spawnSync(process.execPath, [cliPath, ...args, '--projects-dir', fixture.projectsDir], {
     encoding: 'utf8',
-    env: childEnv({ CCFIND_HOME: fixture.home }),
+    env: childEnv({ CCBACK_HOME: fixture.home }),
   });
   return { status: result.status ?? -1, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 }
@@ -134,7 +134,7 @@ describe('a session id can never reach a shell', () => {
   // never reach cmd.exe — is proved in test/resume.test.ts, which runs the real
   // `claude.cmd` spawn path there.
   it.skipIf(process.platform === 'win32')('quotes the id so /bin/sh would run nothing extra even if one got through', () => {
-    const dir = tempDir('ccfind-shim-');
+    const dir = tempDir('ccback-shim-');
     const marker = path.join(dir, 'PWNED');
     const argvFile = path.join(dir, 'argv.txt');
     // A stand-in for `claude` that records its argv. The real CLI never runs.
@@ -148,7 +148,7 @@ describe('a session id can never reach a shell', () => {
 
     const result = spawnSync('/bin/sh', ['-c', command], {
       encoding: 'utf8',
-      env: childEnv({ CCFIND_HOME: fixture.home, PATH: `${dir}:${process.env['PATH'] ?? ''}` }),
+      env: childEnv({ CCBACK_HOME: fixture.home, PATH: `${dir}:${process.env['PATH'] ?? ''}` }),
     });
 
     expect(result.status).toBe(0);
@@ -165,12 +165,12 @@ describe('a session id can never reach a shell', () => {
     const results = JSON.parse(json.stdout) as { resumeCommand: string }[];
     expect(results.length).toBeGreaterThan(0);
 
-    const dir = tempDir('ccfind-shim2-');
+    const dir = tempDir('ccback-shim2-');
     fs.writeFileSync(path.join(dir, 'claude'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
     for (const result of results) {
       const run = spawnSync('/bin/sh', ['-c', result.resumeCommand], {
         encoding: 'utf8',
-        env: childEnv({ CCFIND_HOME: fixture.home, PATH: `${dir}:${process.env['PATH'] ?? ''}` }),
+        env: childEnv({ CCBACK_HOME: fixture.home, PATH: `${dir}:${process.env['PATH'] ?? ''}` }),
       });
       expect([result.resumeCommand, (run.stdout ?? '') + (run.stderr ?? '')].join(' ')).not.toContain('PWNED');
     }
@@ -257,7 +257,7 @@ describe('a forged cwd cannot point at the launch folder', () => {
   });
 
   it('takes the first absolute cwd when earlier records are relative', async () => {
-    const dir = tempDir('ccfind-mixed-');
+    const dir = tempDir('ccback-mixed-');
     const file = writeSession(dir, '-tmp-mixed', 'mixed-session', [
       userMessage('first message with a relative cwd', { cwd: '..' }),
       assistantMessage('second message with a real cwd', { cwd: '/tmp/real-folder' }),

@@ -180,7 +180,7 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
       cwd: projectRoot,
       // The harness touches no files, but it still gets its own app home:
       // nothing spawned by a test may inherit one from the developer's shell.
-      env: childEnv({ CCFIND_HOME: tempDir('ccfind-interrupt-home-') }),
+      env: childEnv({ CCBACK_HOME: tempDir('ccback-interrupt-home-') }),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const started = Date.now();
@@ -247,7 +247,7 @@ describe.skipIf(process.platform === 'win32')('a real SIGINT', () => {
       cwd: projectRoot,
       // The harness touches no files, but it still gets its own app home:
       // nothing spawned by a test may inherit one from the developer's shell.
-      env: childEnv({ CCFIND_HOME: tempDir('ccfind-interrupt-home-') }),
+      env: childEnv({ CCBACK_HOME: tempDir('ccback-interrupt-home-') }),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const started = Date.now();

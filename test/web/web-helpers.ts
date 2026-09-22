@@ -77,7 +77,7 @@ export interface WebFixture {
 export const LONG_MESSAGE_COUNT = 450;
 
 /**
- * A temp projects dir + temp CCFIND_HOME, indexed, with a server on an
+ * A temp projects dir + temp CCBACK_HOME, indexed, with a server on an
  * ephemeral port. Nothing here reads the real ~/.claude.
  */
 export async function startFixtureServer(): Promise<WebFixture> {

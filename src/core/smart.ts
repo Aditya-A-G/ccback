@@ -2,7 +2,7 @@
  * Smart search: the embedding side of the index, as the front ends see it.
  *
  * Nothing here ever installs anything. `@huggingface/transformers` is an
- * optional dependency, so a normal install has it and `npm i -g ccfind
+ * optional dependency, so a normal install has it and `npm i -g ccback
  * --omit=optional` does not; when it is missing, every function here is a
  * quiet no-op and `auto` search stays keyword-only. The only thing that can
  * happen on first use is the model download (about 23 MB), and that happens
@@ -144,7 +144,7 @@ async function runEmbedding(options: EnableSemanticOptions, markEnabled: boolean
  *
  * A download interrupted halfway leaves files that parse as a model and then
  * fail to load, and nothing ever cleans them up — so smart search would stay
- * broken until the user found `~/.ccfind/models` themselves. One failure is
+ * broken until the user found `~/.ccback/models` themselves. One failure is
  * therefore treated as a corrupt cache: those files go, and the load is tried
  * once more from scratch.
  */
@@ -157,7 +157,7 @@ async function loadEmbedder(options: EnableSemanticOptions): Promise<Embedder | 
     return await create({ cacheDir });
   } catch (err) {
     // A UserError here is a decision, not a broken file: the optional package
-    // is missing, or CCFIND_NO_MODEL says not to. Deleting anything would be
+    // is missing, or CCBACK_NO_MODEL says not to. Deleting anything would be
     // wrong, and retrying would only fail the same way.
     if (err instanceof UserError || options.signal?.aborted === true) return null;
     try {

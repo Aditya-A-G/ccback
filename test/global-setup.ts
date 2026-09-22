@@ -2,7 +2,7 @@
  * Runs once, before any worker starts, and once after the last one finishes.
  *
  * Before: a temp directory for the whole run, handed to every worker through
- * the environment, plus a stat snapshot of the real `~/.ccfind`.
+ * the environment, plus a stat snapshot of the real `~/.ccback`.
  * After: the snapshot again. Any difference fails the run.
  */
 import fs from 'node:fs';
@@ -15,7 +15,7 @@ export default function setup(): () => void {
   const guarded = realAppHome();
   const before = statSnapshot(guarded);
 
-  const runHome = fs.mkdtempSync(path.join(os.tmpdir(), 'ccfind-test-run-'));
+  const runHome = fs.mkdtempSync(path.join(os.tmpdir(), 'ccback-test-run-'));
   // Workers are forked after this returns, so they inherit it.
   process.env[RUN_HOME_ENV] = runHome;
 

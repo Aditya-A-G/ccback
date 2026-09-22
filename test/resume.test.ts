@@ -204,10 +204,10 @@ describe.runIf(process.platform === 'win32')('spawning a real claude.cmd on Wind
   function argvRecorderCmd(exitCode: number): string {
     return [
       '@echo off',
-      '>"%CCFIND_TEST_ARGV%" echo %CD%',
+      '>"%CCBACK_TEST_ARGV%" echo %CD%',
       ':loop',
       'if "%~1"=="" goto done',
-      '>>"%CCFIND_TEST_ARGV%" echo %~1',
+      '>>"%CCBACK_TEST_ARGV%" echo %~1',
       'shift',
       'goto loop',
       ':done',
@@ -217,21 +217,21 @@ describe.runIf(process.platform === 'win32')('spawning a real claude.cmd on Wind
   }
 
   it('runs the shim in the session folder with the id as one argument', async () => {
-    const binDir = tempDir('ccfind-resume-bin-');
+    const binDir = tempDir('ccback-resume-bin-');
     // A space is as far as `echo %CD%` can be pushed: cmd.exe expands `%VAR%`
     // before it looks for `&`, so a folder whose *name* contains one cannot be
     // echoed at all. The hostile names are covered by the next test, which
     // never puts the folder on a command line.
-    const workdir = path.join(tempDir('ccfind-resume-cwd-'), 'my session folder');
+    const workdir = path.join(tempDir('ccback-resume-cwd-'), 'my session folder');
     fs.mkdirSync(workdir, { recursive: true });
     const outFile = path.join(binDir, 'argv.txt');
     // The shim reports where it ran and what it was given through an
     // environment variable, so the file name never touches the command line.
     fs.writeFileSync(path.join(binDir, 'claude.cmd'), argvRecorderCmd(7));
     const previousPath = process.env['PATH'];
-    const previousOut = process.env['CCFIND_TEST_ARGV'];
+    const previousOut = process.env['CCBACK_TEST_ARGV'];
     process.env['PATH'] = `${binDir}${path.delimiter}${previousPath ?? ''}`;
-    process.env['CCFIND_TEST_ARGV'] = outFile;
+    process.env['CCBACK_TEST_ARGV'] = outFile;
     try {
       const code = await spawnResume({ cwd: workdir, sessionId: 'abc-123' });
       expect(code).toBe(7);
@@ -243,18 +243,18 @@ describe.runIf(process.platform === 'win32')('spawning a real claude.cmd on Wind
       expect(recorded.slice(1)).toEqual(['--resume', 'abc-123']);
     } finally {
       process.env['PATH'] = previousPath;
-      if (previousOut === undefined) delete process.env['CCFIND_TEST_ARGV'];
-      else process.env['CCFIND_TEST_ARGV'] = previousOut;
+      if (previousOut === undefined) delete process.env['CCBACK_TEST_ARGV'];
+      else process.env['CCBACK_TEST_ARGV'] = previousOut;
     }
   }, 20_000);
 
   it('a hostile folder name is not a command, even through cmd.exe', async () => {
-    const binDir = tempDir('ccfind-resume-bin2-');
+    const binDir = tempDir('ccback-resume-bin2-');
     // `& md PWNED` would create a folder if this name ever reached a command
     // line. It is a directory name, so it must only ever be a directory name.
     // (`> | " < : ? *` cannot be tested this way: Windows will not let a
     // directory be called that in the first place.)
-    const parent = tempDir('ccfind-resume-cwd2-');
+    const parent = tempDir('ccback-resume-cwd2-');
     for (const name of ['a & md PWNED', 'a ^ b %PATH%', 'x (paren) & md PWNED2']) {
       const workdir = path.join(parent, name);
       fs.mkdirSync(workdir, { recursive: true });

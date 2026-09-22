@@ -162,7 +162,7 @@ export function foldersRoute(ctx: ServerContext): JsonResponse {
  * `GET /api/status` — counts, capabilities and embedding progress.
  *
  * With `?nonce=…` it also answers `sha256(token + nonce)`, which is how a
- * second ccfind tells this server from any other local process that might be
+ * second ccback tells this server from any other local process that might be
  * squatting the recorded port. The token itself is never in the response, so
  * the page — and anything that somehow read the page — learns nothing reusable.
  */

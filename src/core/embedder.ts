@@ -66,7 +66,7 @@ export interface CreateEmbedderOptions {
  * scripted run needs.
  */
 export function modelMarkerPath(cacheDir: string, modelId: string = DEFAULT_MODEL_ID): string {
-  return path.join(modelCacheDirFor(cacheDir, modelId), '.ccfind-model-ready');
+  return path.join(modelCacheDirFor(cacheDir, modelId), '.ccback-model-ready');
 }
 
 /** Directory transformers.js caches one model in. */
@@ -210,8 +210,8 @@ export async function createDefaultEmbedder(options: CreateEmbedderOptions = {})
 
   // The test suite sets this: a code path that reaches the real model must
   // fail loudly instead of quietly downloading 23 MB during `npm test`.
-  if (process.env['CCFIND_NO_MODEL'] === '1') {
-    throw new UserError('CCFIND_NO_MODEL=1 is set, so the embedding model was not loaded.');
+  if (process.env['CCBACK_NO_MODEL'] === '1') {
+    throw new UserError('CCBACK_NO_MODEL=1 is set, so the embedding model was not loaded.');
   }
 
   if (!isTransformersAvailable()) throw new UserError(INSTALL_HINT);

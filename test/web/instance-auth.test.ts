@@ -2,7 +2,7 @@
  * Proving a server is *ours* before handing it the user's query.
  *
  * `web.json` records a port, and a port is not an identity: with a stale marker
- * and a squatted port, any local process answering `{"app":"ccfind"}` would get
+ * and a squatted port, any local process answering `{"app":"ccback"}` would get
  * the browser opened on it, with the search terms in the URL. So the marker
  * carries a secret only its writer knows, and the server proves it knows it
  * without the secret ever crossing the wire.
@@ -36,7 +36,7 @@ async function fixtureWithSession(): Promise<ReturnType<typeof makeFixture>> {
   return fixture;
 }
 
-/** A local server that claims to be ccfind. It cannot know the marker's token. */
+/** A local server that claims to be ccback. It cannot know the marker's token. */
 async function impostor(body: unknown): Promise<{ port: number; stop: () => Promise<void> }> {
   const server = http.createServer((_req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -78,9 +78,9 @@ describe('the marker carries a secret', () => {
 });
 
 describe('a port squatter', () => {
-  it('is not reused just because it says it is ccfind', async () => {
+  it('is not reused just because it says it is ccback', async () => {
     const fixture = await fixtureWithSession();
-    const fake = await impostor({ app: 'ccfind', ok: true });
+    const fake = await impostor({ app: 'ccback', ok: true });
     writeInstanceFile(fake.port, { appHome: fixture.home });
 
     expect(await findRunningWeb({ appHome: fixture.home })).toBeNull();
@@ -90,7 +90,7 @@ describe('a port squatter', () => {
 
   it('cannot fake the proof either, because it does not have the token', async () => {
     const fixture = await fixtureWithSession();
-    const fake = await impostor({ app: 'ccfind', auth: 'f'.repeat(64) });
+    const fake = await impostor({ app: 'ccback', auth: 'f'.repeat(64) });
     writeInstanceFile(fake.port, { appHome: fixture.home });
     expect(await findRunningWeb({ appHome: fixture.home })).toBeNull();
     await fake.stop();
@@ -117,7 +117,7 @@ describe('a port squatter', () => {
 describe('a dead process', () => {
   it('is not probed at all when its pid is gone', async () => {
     const fixture = await fixtureWithSession();
-    const fake = await impostor({ app: 'ccfind' });
+    const fake = await impostor({ app: 'ccback' });
     // A pid that cannot exist, on the port something else now answers on.
     fs.writeFileSync(
       path.join(fixture.home, 'web.json'),

@@ -1,8 +1,8 @@
-# ccfind
+# ccback
 
 Find any Claude Code session by what was said in it, see which folder it lived in, and jump straight back in.
 
-Claude Code keeps every transcript under `~/.claude/projects`, but you remember sessions by topic, not by folder. The built-in `/resume` picker only matches the session title and first message. ccfind searches the full conversation text across every folder on your machine.
+Claude Code keeps every transcript under `~/.claude/projects`, but you remember sessions by topic, not by folder. The built-in `/resume` picker only matches the session title and first message. ccback searches the full conversation text across every folder on your machine.
 
 Everything runs locally. Nothing leaves your machine, and your Claude directory is only ever read.
 
@@ -11,23 +11,23 @@ Works on macOS, Linux and Windows. Needs Node 22 or newer.
 ## Install
 
 ```sh
-npm install -g ccfind          # gives you `ccfind` and the short `ccf`
+npm install -g ccback          # gives you `ccback` and the short `ccb`
 ```
 
 That includes the libraries that run the embedding model on your machine, so the install is about 140 MB to download and about 520 MB on disk. They ship binaries for macOS, Linux and Windows in one package; only yours is ever loaded.
 
-To use keyword search alone, run `ccfind --keyword-only`, or set `CCFIND_KEYWORD_ONLY=1` in your shell to make that permanent: no model is downloaded and nothing is embedded. A global install still carries the libraries, because `npm install -g` ignores `--omit=optional`; in a project-local install, `npm install ccfind --omit=optional` does skip them and brings the install down to about 40 MB.
+To use keyword search alone, run `ccback --keyword-only`, or set `CCBACK_KEYWORD_ONLY=1` in your shell to make that permanent: no model is downloaded and nothing is embedded. A global install still carries the libraries, because `npm install -g` ignores `--omit=optional`; in a project-local install, `npm install ccback --omit=optional` does skip them and brings the install down to about 40 MB.
 
 ### A shorter command
 
-Want something shorter to type? `ccfind --alias` offers to add `alias sf=ccfind` to your shell startup file, on bash, zsh and fish. Pick your own name with `ccfind --alias qq`.
+Want something shorter to type? `ccback --alias` offers to add `alias sf=ccback` to your shell startup file, on bash, zsh and fish. Pick your own name with `ccback --alias qq`.
 
 Before it offers, it makes sure the name is free:
 
 - not a program on your `PATH`, not a shell builtin or reserved word, and not already an alias, abbreviation or function in your startup file;
 - on fish, not a file in your fish functions directory either (`~/.config/fish/functions`, or under `XDG_CONFIG_HOME` when you have set one).
 
-It then shows you the exact block it would append — a blank line, a comment saying ccfind added it, and the alias — and asks before adding it, unless you pass `--yes`. What it will and will not do:
+It then shows you the exact block it would append — a blank line, a comment saying ccback added it, and the alias — and asks before adding it, unless you pass `--yes`. What it will and will not do:
 
 - it writes to the startup file your shell really reads, so `ZDOTDIR` and `XDG_CONFIG_HOME` are honoured; if either points outside your home directory it says so and prints the line instead of writing anywhere;
 - nothing else in the file is touched, and it never follows a symlink out of your home directory;
@@ -38,13 +38,13 @@ It then shows you the exact block it would append — a blank line, a comment sa
 ## Use it
 
 ```sh
-ccfind                       # the picker, most recent sessions first
-ccfind recording videos      # the picker, pre-filled — Enter resumes that session
-ccfind -w recording videos   # the same search in your browser
-ccfind -p invoices --json    # plain results, for scripts and pipes
+ccback                       # the picker, most recent sessions first
+ccback recording videos      # the picker, pre-filled — Enter resumes that session
+ccback -w recording videos   # the same search in your browser
+ccback -p invoices --json    # plain results, for scripts and pipes
 ```
 
-Words are always the search. Everything else is a flag, so `ccfind web project` looks for "web project". A word that is not a flag ccfind knows stays a word, even with a dash in front of it — `ccfind -p -weird` searches for "-weird" — and everything after `--` is search text, always.
+Words are always the search. Everything else is a flag, so `ccback web project` looks for "web project". A word that is not a flag ccback knows stays a word, even with a dash in front of it — `ccback -p -weird` searches for "-weird" — and everything after `--` is search text, always.
 
 In the picker:
 
@@ -69,9 +69,9 @@ Smart search needs no key: it sets itself up on its own, in the background.
 
 Two things run at once: keyword search (SQLite FTS5, BM25, stemming) and semantic search, which matches by meaning — "video editing workflow" finds the session where you said "cut the clips and add captions". Results are merged, so you get both.
 
-The first time you open the picker or the browser UI, ccfind downloads a small embedding model (`all-MiniLM-L6-v2`, about 23 MB) and starts indexing meaning in the background. Keyword results are there from the first keystroke and quietly get better as it finishes; on a large history the first pass takes a few minutes. After that, a day of new conversation is a top-up of a few seconds, because unchanged text keeps the embeddings it already had.
+The first time you open the picker or the browser UI, ccback downloads a small embedding model (`all-MiniLM-L6-v2`, about 23 MB) and starts indexing meaning in the background. Keyword results are there from the first keystroke and quietly get better as it finishes; on a large history the first pass takes a few minutes. After that, a day of new conversation is a top-up of a few seconds, because unchanged text keeps the embeddings it already had.
 
-With `--keyword-only` or `CCFIND_KEYWORD_ONLY=1`, or when the embedding libraries are not installed, none of that happens and nothing nags you about it: keyword search is the whole tool.
+With `--keyword-only` or `CCBACK_KEYWORD_ONLY=1`, or when the embedding libraries are not installed, none of that happens and nothing nags you about it: keyword search is the whole tool.
 
 ## Everything else
 
@@ -92,7 +92,7 @@ With `--keyword-only` or `CCFIND_KEYWORD_ONLY=1`, or when the embedding librarie
 
 `-p` and `--json` never download anything: if the smart-search model is not on
 this machine already, they answer with keyword results and say so in `modeUsed`.
-`ccfind --reindex` is what sets smart search up from a terminal.
+`ccback --reindex` is what sets smart search up from a terminal.
 
 `--sort` sets the order the picker opens in, and the order `-p`/`--json` print
 the sessions in — there, both `recent` and `oldest` mean the most recently used
@@ -115,22 +115,22 @@ The browser UI has the same search, a folder and date filter, a best-match / mos
 ## Where things live
 
 - Transcripts: `$CLAUDE_CONFIG_DIR/projects` or `~/.claude/projects` (override with `--projects-dir`). Read-only.
-- Index, model cache and the running-server marker: `~/.ccfind` (override with `CCFIND_HOME`). Safe to delete; it is rebuilt on the next run.
+- Index, model cache and the running-server marker: `~/.ccback` (override with `CCBACK_HOME`). Safe to delete; it is rebuilt on the next run.
 - Subagent transcripts are not indexed.
 
 ## Privacy
 
-The web UI binds to `127.0.0.1` only, rejects requests with a foreign `Host` header, sends no CORS headers, and serves a strict Content-Security-Policy. Transcript text is never rendered as HTML. The only network request ccfind ever makes is the one-time model download.
+The web UI binds to `127.0.0.1` only, rejects requests with a foreign `Host` header, sends no CORS headers, and serves a strict Content-Security-Policy. Transcript text is never rendered as HTML. The only network request ccback ever makes is the one-time model download.
 
-The running server records itself in `~/.ccfind/web.json`, which holds the secret that identifies it. That file is created `0600` on macOS and Linux. Windows has no POSIX file modes: there it lives in `%USERPROFILE%\.ccfind` and is protected by the ACL that folder inherits, which grants you, SYSTEM and local administrators — so on a shared Windows machine an administrator can read it.
+The running server records itself in `~/.ccback/web.json`, which holds the secret that identifies it. That file is created `0600` on macOS and Linux. Windows has no POSIX file modes: there it lives in `%USERPROFILE%\.ccback` and is protected by the ACL that folder inherits, which grants you, SYSTEM and local administrators — so on a shared Windows machine an administrator can read it.
 
 ## Contributing
 
 Issues and pull requests are welcome. You need Node 22 or newer.
 
 ```sh
-git clone https://github.com/Aditya-A-G/ccfind.git
-cd ccfind
+git clone https://github.com/Aditya-A-G/ccback.git
+cd ccback
 npm install
 npm test            # builds first, then runs the suite
 npm run typecheck
@@ -138,7 +138,7 @@ npm run build
 ```
 
 The tests need no network, and they never read or write your real `~/.claude`
-or `~/.ccfind`: every run gets its own temporary home, and the suite fails if
+or `~/.ccback`: every run gets its own temporary home, and the suite fails if
 anything under the real one changes.
 
 ## License

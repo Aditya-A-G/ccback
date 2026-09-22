@@ -80,7 +80,7 @@ export interface WebOptions extends CommonOptions {
 export const DEFAULT_PORT = 4777;
 
 /**
- * One screenful: 24 rows at 80 columns, so `ccfind --help` in a default
+ * One screenful: 24 rows at 80 columns, so `ccback --help` in a default
  * terminal shows the whole thing without scrolling back. `docs.test.ts`
  * measures it, and checks it agrees with the README about `--port 0`.
  */
@@ -210,7 +210,7 @@ export interface SplitArgv {
  * Splits a command line into flags and query words.
  *
  * A dashed token that is not a flag this tool knows is a *word*, not an error:
- * `ccfind -p -weird` searches for "-weird". Everything after `--` is always
+ * `ccback -p -weird` searches for "-weird". Everything after `--` is always
  * query text. Known flags are handed to `parseArgs`, which still validates
  * them strictly, so `--sort bogus` is as loud as it ever was.
  */
@@ -285,11 +285,11 @@ async function main(rawArgv: string[]): Promise<number> {
     return 0;
   }
 
-  // Every word is part of the query, so `ccfind web project` searches for
+  // Every word is part of the query, so `ccback web project` searches for
   // "web project" instead of running a subcommand nobody typed.
   const query = words.join(' ');
 
-  // Read before anything else looks at the mode: a `CCFIND_KEYWORD_ONLY` that
+  // Read before anything else looks at the mode: a `CCBACK_KEYWORD_ONLY` that
   // says neither yes nor no is a mistake, whether or not the flag was passed.
   const keywordOnly = resolveKeywordOnly(flags['keyword-only'] === true);
 
@@ -407,7 +407,7 @@ export interface TranscriptOpener {
  *
  * The *promise* is memoised, not the handle: `server ??= await start()` leaves
  * a window where a second ^O starts a second server, and the one that loses
- * the assignment is never closed — which is also why ccfind would then refuse
+ * the assignment is never closed — which is also why ccback would then refuse
  * to exit. The picker's server never embeds either: the picker is already
  * embedding in this same process, and two jobs on one database is one too many.
  */
@@ -705,7 +705,7 @@ async function runReindex(common: CommonOptions, full: boolean): Promise<number>
 
 async function runStats(common: CommonOptions): Promise<number> {
   // "Where does this thing keep its files?" is exactly the question somebody
-  // asks when the transcript directory is not where ccfind looked, so a missing
+  // asks when the transcript directory is not where ccback looked, so a missing
   // one prints the layout and the hint rather than one bare error line.
   try {
     await maybeSync(common);
@@ -895,9 +895,9 @@ function readVersion(): string {
 /**
  * True when this file is what node was asked to run.
  *
- * `main()` must not run on `import('ccfind/dist/cli.js')` — somebody poking at
+ * `main()` must not run on `import('ccback/dist/cli.js')` — somebody poking at
  * the module should not kick off a sync against their real index. The npm bin
- * is a symlink (`…/bin/ccfind` -> `dist/cli.js`) and on Windows a shim that
+ * is a symlink (`…/bin/ccback` -> `dist/cli.js`) and on Windows a shim that
  * still passes the real path, so both sides are resolved through `realpath`
  * before comparing, case-insensitively where the filesystem is.
  */
@@ -929,14 +929,14 @@ export async function runCli(argv: string[]): Promise<void> {
     if (isUserError(err)) {
       process.stderr.write(`${sanitizeLine(err.message)}\n`);
       process.exitCode = 2;
-    } else if (process.env['CCFIND_DEBUG']) {
+    } else if (process.env['CCBACK_DEBUG']) {
       process.stderr.write(`${APP_NAME}: ${(err as Error).stack ?? String(err)}\n`);
       process.exitCode = 1;
     } else {
       const message = err instanceof Error ? err.message : String(err);
       process.stderr.write(
         `${APP_NAME}: ${sanitizeLine(message).split('\n').join(' ')}\n` +
-          'Set CCFIND_DEBUG=1 and run it again to see the stack trace.\n',
+          'Set CCBACK_DEBUG=1 and run it again to see the stack trace.\n',
       );
       process.exitCode = 1;
     }

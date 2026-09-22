@@ -26,8 +26,8 @@ interface Harness {
 }
 
 function harness(overrides: Partial<AliasEnv> = {}): Harness {
-  const home = tempDir('ccfind-alias-cfg-home-');
-  const emptyPath = tempDir('ccfind-alias-cfg-path-');
+  const home = tempDir('ccback-alias-cfg-home-');
+  const emptyPath = tempDir('ccback-alias-cfg-path-');
   const written: string[] = [];
   const env: AliasEnv = {
     home,
@@ -54,7 +54,7 @@ describe('zsh with ZDOTDIR', () => {
 
     expect(detectShell(h.env).file).toBe(path.join(zdotdir, '.zshrc'));
     expect(await runAlias('sf', h.env)).toBe(0);
-    expect(read(path.join(zdotdir, '.zshrc'))).toContain('alias sf=ccfind');
+    expect(read(path.join(zdotdir, '.zshrc'))).toContain('alias sf=ccback');
     // And nothing at all in the file zsh is ignoring.
     expect(fs.existsSync(path.join(h.home, '.zshrc'))).toBe(false);
   });
@@ -76,11 +76,11 @@ describe('zsh with ZDOTDIR', () => {
     const h = harness({ zdotdir: '' });
     expect(detectShell(h.env).file).toBe(path.join(h.home, '.zshrc'));
     expect(await runAlias('sf', h.env)).toBe(0);
-    expect(read(path.join(h.home, '.zshrc'))).toContain('alias sf=ccfind');
+    expect(read(path.join(h.home, '.zshrc'))).toContain('alias sf=ccback');
   });
 
   it('prints the line, and why, when ZDOTDIR is outside the home directory', async () => {
-    const outside = tempDir('ccfind-alias-outside-');
+    const outside = tempDir('ccback-alias-outside-');
     const h = harness({ zdotdir: outside });
 
     const target = detectShell(h.env);
@@ -90,7 +90,7 @@ describe('zsh with ZDOTDIR', () => {
     expect(await runAlias('sf', h.env)).toBe(0);
     expect(h.out()).toContain('ZDOTDIR');
     expect(h.out()).toContain('outside your home directory');
-    expect(h.out()).toContain('alias sf=ccfind');
+    expect(h.out()).toContain('alias sf=ccback');
     // Nothing written anywhere: not in the home directory, not out there.
     expect(fs.readdirSync(h.home)).toEqual([]);
     expect(fs.readdirSync(outside)).toEqual([]);
@@ -100,7 +100,7 @@ describe('zsh with ZDOTDIR', () => {
     const h = harness({ zdotdir: 'config/zsh' });
     expect(await runAlias('sf', h.env)).toBe(0);
     expect(h.out()).toContain('not an absolute path');
-    expect(h.out()).toContain('alias sf=ccfind');
+    expect(h.out()).toContain('alias sf=ccback');
     expect(fs.readdirSync(h.home)).toEqual([]);
   });
 });
@@ -116,7 +116,7 @@ describe('fish with XDG_CONFIG_HOME', () => {
 
     expect(detectShell(h.env).file).toBe(path.join(xdg, 'fish', 'config.fish'));
     expect(await runAlias('sf', h.env)).toBe(0);
-    expect(read(path.join(xdg, 'fish', 'config.fish'))).toContain('alias sf ccfind');
+    expect(read(path.join(xdg, 'fish', 'config.fish'))).toContain('alias sf ccback');
     expect(fs.existsSync(path.join(h.home, '.config', 'fish', 'config.fish'))).toBe(false);
   });
 
@@ -135,18 +135,18 @@ describe('fish with XDG_CONFIG_HOME', () => {
   it('still uses ~/.config/fish when XDG_CONFIG_HOME is not set', async () => {
     const h = fishEnv();
     expect(await runAlias('sf', h.env)).toBe(0);
-    expect(read(path.join(h.home, '.config', 'fish', 'config.fish'))).toContain('alias sf ccfind');
+    expect(read(path.join(h.home, '.config', 'fish', 'config.fish'))).toContain('alias sf ccback');
   });
 
   it('prints the line, and why, when XDG_CONFIG_HOME is outside the home directory', async () => {
-    const outside = tempDir('ccfind-alias-xdg-outside-');
+    const outside = tempDir('ccback-alias-xdg-outside-');
     const h = fishEnv({ xdgConfigHome: outside });
 
     expect(await runAlias('sf', h.env)).toBe(0);
     expect(h.out()).toContain('XDG_CONFIG_HOME');
     expect(h.out()).toContain('outside your home directory');
     // fish syntax for the line it hands over, not the POSIX one.
-    expect(h.out()).toContain('alias sf ccfind');
+    expect(h.out()).toContain('alias sf ccback');
     expect(fs.readdirSync(outside)).toEqual([]);
     expect(fs.readdirSync(h.home)).toEqual([]);
   });

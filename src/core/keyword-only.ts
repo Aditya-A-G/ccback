@@ -9,13 +9,13 @@
  * exactly where they are, so turning it off again carries on where it stopped.
  *
  * It is asked for with `--keyword-only` for one run, or with
- * `CCFIND_KEYWORD_ONLY` in the environment for every run.
+ * `CCBACK_KEYWORD_ONLY` in the environment for every run.
  */
 import { UserError } from './errors.js';
 import { APP_NAME } from './paths.js';
 
 /** Environment variable that makes keyword-only permanent. */
-export const KEYWORD_ONLY_ENV = 'CCFIND_KEYWORD_ONLY';
+export const KEYWORD_ONLY_ENV = 'CCBACK_KEYWORD_ONLY';
 
 /**
  * Which switch asked for keyword-only. Null means smart search is on.
@@ -33,7 +33,7 @@ const NO: ReadonlySet<string> = new Set(['0', 'false', 'no', '']);
  *
  * Unset, empty, `0`, `false` and `no` are off. Anything that is neither a yes
  * nor a no is a mistake worth one line: silently searching the wrong way
- * because `CCFIND_KEYWORD_ONLY=ture` is not a thing anybody would notice.
+ * because `CCBACK_KEYWORD_ONLY=ture` is not a thing anybody would notice.
  */
 export function keywordOnlyFromEnv(value: string | undefined): boolean {
   if (value === undefined) return false;
