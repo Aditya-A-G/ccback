@@ -231,7 +231,7 @@ describe('the picker honours --limit', () => {
     expect(await tui.exitCode).toBe(0);
   });
 
-  it('keeps the recent list at five', async () => {
+  it('fetches a deep recent list regardless of --limit, so ↓ can scroll past five', async () => {
     const asked: number[] = [];
     const tui = startTui({
       limit: 3,
@@ -243,7 +243,7 @@ describe('the picker honours --limit', () => {
       },
     });
     await tick(80);
-    expect(asked[0]).toBe(5);
+    expect(asked[0]).toBe(50);
     expect(plainFrame(tui.liveFrame())).toContain('Recent');
     await tui.send(KEY.escape);
     expect(await tui.exitCode).toBe(0);

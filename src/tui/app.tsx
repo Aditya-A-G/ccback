@@ -152,7 +152,7 @@ export function App({ options, deps, openTranscript, onOutcome }: AppProps): Rea
         const trimmed = nextQuery.trim();
         const list =
           trimmed === ''
-            ? await deps.recentSessions({ limit: 5, cwdPrefix: options.cwdPrefix })
+            ? await deps.recentSessions({ limit: Math.max(limit, 50), cwdPrefix: options.cwdPrefix })
             : await deps.search({
                 query: nextQuery,
                 mode: searchMode,

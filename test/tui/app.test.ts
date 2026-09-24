@@ -51,7 +51,7 @@ function manyMatches(count: number): MatchSnippet[] {
 }
 
 describe('the recent list', () => {
-  it('shows at most five recent sessions under a Recent heading', async () => {
+  it('shows five recent sessions under a Recent heading, and ↓ scrolls to older ones', async () => {
     const asked: number[] = [];
     const tui = startTui({
       deps: {
@@ -63,13 +63,19 @@ describe('the recent list', () => {
     });
     await settle(tui);
 
-    const frame = plainFrame(tui.liveFrame());
-    expect(asked).toEqual([5]);
+    let frame = plainFrame(tui.liveFrame());
+    expect(asked[0]).toBeGreaterThanOrEqual(8);
     expect(frame).toContain('Recent');
     const rows = frame.split('\n').filter((line) => /Session \d\d/.test(line));
     expect(rows).toHaveLength(5);
     expect(frame).toContain('Session 05');
     expect(frame).not.toContain('Session 06');
+
+    for (let i = 0; i < 5; i += 1) await tui.send(KEY.down, 40);
+    frame = plainFrame(tui.liveFrame());
+    expect(frame).toContain('▸ Session 06');
+    expect(frame).not.toContain('Session 01');
+    expect(frame.split('\n').filter((line) => /Session \d\d/.test(line))).toHaveLength(5);
 
     await tui.send(KEY.escape);
     expect(await tui.exitCode).toBe(0);

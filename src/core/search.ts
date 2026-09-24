@@ -246,10 +246,10 @@ function folderExists(cwd: string): boolean {
   }
 }
 
-/** First message of a session, used when there is nothing matched to show. */
+/** Last message of a session, so the recent list previews where each one left off. */
 function fallbackSnippet(db: Db, row: SessionRow): Snippet {
   const message = db
-    .prepare('SELECT id, role, ts, text FROM messages WHERE session_id = ? ORDER BY id LIMIT 1')
+    .prepare('SELECT id, role, ts, text FROM messages WHERE session_id = ? ORDER BY id DESC LIMIT 1')
     .get(row.id) as { id: number; role: Role; ts: string; text: string } | undefined;
   if (!message) return { messageId: 0, role: 'user', ts: row.last_ts, text: '', highlights: [] };
   const text = message.text.replace(/\s+/g, ' ').trim();
