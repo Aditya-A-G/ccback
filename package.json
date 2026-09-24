@@ -1,6 +1,6 @@
 {
   "name": "ccback",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Find any Claude Code session by what was said in it, and jump straight back into it.",
   "keywords": [
     "claude",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- The recent list (empty search box) scrolls: five rows on screen, ↓ walks the last 50 sessions.
+- With nothing typed, a session previews its last message, so you see where it left off.
+- The Tab hint is spelled out as `tab` in the footer and the match counter.
+
 ## 0.1.0
 
 - Search every Claude Code session by what was said in it, from the terminal picker, `--print`/`--json` output, or a local browser UI.
