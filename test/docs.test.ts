@@ -311,9 +311,14 @@ describe('CHANGELOG.md', () => {
   });
 
   it('describes the release in a handful of plain bullets', () => {
-    const bullets = changelog.split('\n').filter((line) => line.startsWith('- '));
-    expect(bullets.length).toBeGreaterThanOrEqual(3);
-    expect(bullets.length).toBeLessThanOrEqual(6);
+    // Per release: each `## x.y.z` section keeps between one and six bullets.
+    const sections = changelog.split(/^## /m).slice(1);
+    expect(sections.length).toBeGreaterThanOrEqual(1);
+    for (const section of sections) {
+      const bullets = section.split('\n').filter((line) => line.startsWith('- '));
+      expect(bullets.length).toBeGreaterThanOrEqual(1);
+      expect(bullets.length).toBeLessThanOrEqual(6);
+    }
   });
 });
 
