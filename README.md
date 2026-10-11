@@ -136,6 +136,20 @@ The browser UI has the same search, a folder and date filter, a best-match / mos
 - Index, model cache and the running-server marker: `~/.ccback` (override with `CCBACK_HOME`). Safe to delete; it is rebuilt on the next run.
 - Subagent transcripts are not indexed.
 
+## Sessions missing?
+
+By default Claude Code deletes sessions you haven't used in 30 days from its projects folder, without showing a message ([Claude Code docs](https://code.claude.com/docs/en/settings-reference#cleanupperioddays)). Once a transcript is gone, ccback can't find it either: the next index sync drops it.
+
+To keep them, set a large `cleanupPeriodDays` in your Claude settings (`~/.claude/settings.json`, or `settings.json` under `$CLAUDE_CONFIG_DIR`). `0` fails validation, so use a big number:
+
+```json
+{
+  "cleanupPeriodDays": 3650
+}
+```
+
+More detail: [Claude Code sessions disappeared? It deletes them after 30 days](https://dev.to/adityashipshq/claude-code-sessions-disappeared-it-deletes-them-after-30-days-2887).
+
 ## Privacy
 
 The web UI binds to `127.0.0.1` only, rejects requests with a foreign `Host` header, sends no CORS headers, and serves a strict Content-Security-Policy. Transcript text is never rendered as HTML. The only network request ccback ever makes is the one-time model download.
