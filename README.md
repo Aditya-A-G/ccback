@@ -1,18 +1,34 @@
 # ccback
 
-Find any Claude Code session by what was said in it, see which folder it lived in, and jump straight back in.
+Search your Claude Code conversation history by what was said in it, and jump straight back in.
 
-Claude Code keeps every transcript under `~/.claude/projects`, but you remember sessions by topic, not by folder. The built-in `/resume` picker only matches the session title and first message. ccback searches the full conversation text across every folder on your machine.
-
-Everything runs locally. Nothing leaves your machine, and your Claude directory is only ever read.
-
-Works on macOS, Linux and Windows. Needs Node 22 or newer.
+![ccback: type a word you remember, step through the sessions that mention it, press Enter to resume](https://raw.githubusercontent.com/Aditya-A-G/ccback/main/docs/demo.gif)
 
 ## Install
 
 ```sh
 npm install -g ccback          # gives you `ccback` and the short `ccb`
 ```
+
+Works on macOS, Linux and Windows. Needs Node 22 or newer.
+
+## Why not `/resume`?
+
+|  | `/resume` picker | ccback |
+| --- | --- | --- |
+| Search matches | session titles, not what was said inside | everything you and Claude wrote |
+| Shows the matching message | no | yes, step through each match with Tab |
+| Sessions listed | the current project (all projects behind a key) | every project folder at once |
+| Search type | text filter | full-text and semantic, ranked |
+| Opens the session | in the current project; for other projects it copies a `cd` command | yes, in its original folder, from anywhere |
+
+**Without ccback:** `/resume` → switch to all projects → scan titles that are mostly your first message → preview one, wrong session, try the next. A word you said deep inside the conversation finds nothing.
+
+**With ccback:** type what you remember → Enter.
+
+Claude Code keeps your session transcripts under `~/.claude/projects`. ccback indexes what you and Claude wrote in each one and shows which folder it lived in.
+
+Everything runs locally. Nothing leaves your machine, and your Claude directory is only ever read.
 
 ## Use it
 
