@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Package listing only: a new npm description and keywords, and a demo GIF plus a `/resume` comparison at the top of the README. No code changes.
+
 ## 0.1.1
 
 - The recent list (empty search box) scrolls: five rows on screen, ↓ walks the last 50 sessions.

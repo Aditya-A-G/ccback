@@ -1,6 +1,6 @@
 {
   "name": "ccback",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Search your Claude Code conversation history (full-text + semantic) across every project folder, and resume any session.",
   "keywords": [
     "claude-code",
